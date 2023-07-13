@@ -16,8 +16,8 @@ de pesos 2xN, sendo N o número de entradas.
 
 
 ## Arquivos .py
-O arquivo ´melm.py´ é o arquivo inicial do inicio da Iniciação Científica. Ele foi o ponto de partida do estudo.\\
-O arquivo ´melm_R2.py´ contém a implementação do sistema de simplificação da camada escondida, e executa, assim como o melm.py, a base de dados da diabetes, que é uma base de dados para teste.\\
+O arquivo ´melm.py´ é o arquivo inicial do inicio da Iniciação Científica. Ele foi o ponto de partida do estudo.<br/>
+O arquivo ´melm_R2.py´ contém a implementação do sistema de simplificação da camada escondida, e executa, assim como o melm.py, a base de dados da diabetes, que é uma base de dados para teste.<br/>
 O arquivo ´melm_R3.py´ contém a adição anterior, e também a implementação de uma função que permite adicionar bases de dados externas e dentro do próprio programa criar o Dataset de treino e de teste. Todas modificações posteriores serão feitas exclusivamente no arquivo ´melm_R3.py´.
 
 
