@@ -1,6 +1,7 @@
 from math import *
 from random import *
 from time import process_time
+from scipy import stats
 
 import math
 import time
@@ -9,7 +10,7 @@ import sys,string
 import argparse
 import numpy as np
 import pandas as pd
-
+#np.set_printoptions(threshold=np.inf)
 #========================================================================
 class melm():
     def main(self,TrainingData_File, TestingData_File,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, Iteration, NeuronStack):
@@ -123,18 +124,25 @@ class melm():
             #InputWeight = np.random.uniform(np.amin(np.amin(P)), np.amax(np.amax(P)), (NumberofHiddenNeurons,NumberofInputNeurons))
             if np.array_equal(NeuronStack, []):
                 print(classValues, counterClassValues)
-                classAverage = np.nanmean(classValues, axis = 0)
-                CounterClassAverage = np.nanmean(counterClassValues, axis = 0)
-                InputWeight = np.row_stack((classAverage, CounterClassAverage))
+                #classAverage = np.nanmean(classValues, axis = 0)
+                #counterClassAverage = np.nanmean(counterClassValues, axis = 0)
+                #classMedian = np.nanmedian(classValues, axis = 0)
+                #counterClassMedian = np.nanmedian(counterClassValues, axis = 0)
+                classMode = stats.mode(classValues, axis = 0 , keepdims= True , nan_policy= 'omit')[0]
+                counterClassMode = stats.mode(counterClassValues, axis = 0 ,  keepdims= True ,  nan_policy= 'omit')[0]
+                #print(classMode, counterClassMode)
+                InputWeight = np.row_stack((classMode, counterClassMode))
                 InputWeight = np.delete(InputWeight, 0, 1)
-                print(InputWeight)
+                #print(InputWeight)
             else:
                 InputWeight = NeuronStack
+                #print('NeuronStack: ', NeuronStack)
         else:
             InputWeight=np.random.rand(NumberofHiddenNeurons,NumberofInputNeurons)*2-1;
 
             
-        BiasofHiddenNeurons=np.random.rand(NumberofHiddenNeurons,1);
+        #BiasofHiddenNeurons=np.random.rand(NumberofHiddenNeurons,1);
+        BiasofHiddenNeurons = np.zeros((NumberofHiddenNeurons,1))
         if verbose: print ('Calculate hidden neuron output matrix H')
         #%%%%%%%%%%% Calculate hidden neuron output matrix H
         H = switchActivationFunction(ActivationFunction,InputWeight,BiasofHiddenNeurons,P)
@@ -240,7 +248,9 @@ def MakeTrainTest(Benign_address , Malign_address):
     ##print(train_data, test_data)
     return [train_data, test_data]
 
-        
+
+def euclidianDistance(x1, x2):
+    return np.sqrt(np.sum((x1-x2)**2))
         
 #========================================================================
 def switchActivationFunction(ActivationFunction,InputWeight,BiasofHiddenNeurons,P):
@@ -479,7 +489,7 @@ if __name__ == "__main__":
                 print('Acurácia chegou em 100% no treinamento na iteração: ', i)
                 #print(Weights)
                 #print(Weights[~np.isnan(Weights).any(axis=1)])
-                Dataset.append(ff.main(TrainingData, TestingData, opts[2], 2*(i+1), opts[4], opts[5], opts[6],pd.DataFrame(), np.nan_to_num(Weights, nan = 1)))
+                Dataset.append(ff.main(TrainingData, TestingData, opts[2], 2*(i+1), opts[4], opts[5], opts[6],pd.DataFrame(), np.nan_to_num(Weights, nan = 0)))
                 Values.append(Dataset[i][0])
                 Accuracies.append(Dataset[i][1])
                 break
