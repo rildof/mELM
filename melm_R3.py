@@ -1,26 +1,26 @@
-from math import *
+
 from random import *
 from time import process_time
 from scipy import stats
 
 import math
-import time
+
 import struct
 import sys,string
 import argparse
 import numpy as np
 import pandas as pd
-#np.set_printoptions(threshold=np.inf)
-#========================================================================
+np.set_printoptions(threshold=np.inf)
+# ========================================================================
 class melm():
     def main(self,train_data, test_data,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, NeuronStack, BiasArray):
-                
+
         if ActivationFunction is None:
             ActivationFunction = 'linear'
         print('kernel ' + ActivationFunction)
-        
+
         if nSeed is None:
-            nSeed = 1	
+            nSeed = 1
         seed(nSeed)
         np.random.seed(nSeed)
 
@@ -33,7 +33,7 @@ class melm():
 
         if verbose: print ('Load training dataset')
         #%%%%%%%%%%% Load training dataset
-        
+
         train_data_2 = train_data.copy()
         test_data_2 = test_data.copy()
 
@@ -46,16 +46,16 @@ class melm():
         classValues = (classValues.reset_index(drop=True))
         counterClassValues = train_data.loc[train_data[0] == 0.000000]
         counterClassValues = (counterClassValues.reset_index(drop=True))
-        
-    
+
+
         if verbose: print ('Load testing dataset')
         #%%%%%%%%%%% Load testing dataset
-        
+
         #test_data=pd.read_csv(TestingData_File, sep=' ', decimal=".", header=None)
         #for ii in reversed(range(np.size(test_data,1))):
         #    if np.isnan(test_data.loc[:,ii]).all():
         #        test_data.drop(test_data.columns[ii], axis=1, inplace=True)
-        
+
         TVT=np.transpose(test_data.loc[:,0])
         TVP=np.transpose(test_data.loc[:,1:np.size(test_data,1)])
         TVT = TVT.reset_index(drop=True)
@@ -78,10 +78,10 @@ class melm():
                 if sorted_target[i] != label[j]:
                     j=j+1
                     label.append(sorted_target[i])
-    
+
             number_class=j+1
             NumberofOutputNeurons=number_class
-    
+
             if verbose: print ('Processing the targets of training')
                 #%%%%%%%%%% Processing the targets of training
             temp_T=np.zeros((NumberofOutputNeurons, NumberofTrainingData))
@@ -109,15 +109,15 @@ class melm():
 
         if verbose: print ('Random generate input weights InputWeight (w_i) and biases BiasofHiddenNeurons (b_i) of hidden neurons')
         #%%%%%%%%%%% Random generate input weights InputWeight (w_i) and biases BiasofHiddenNeurons (b_i) of hidden neurons
-        
+
         if (ActivationFunction == 'erosion') or (ActivationFunction == 'dilation') or (ActivationFunction == 'fuzzy-erosion') or (ActivationFunction == 'fuzzy_erosion') or (ActivationFunction == 'fuzzy-dilation') or (ActivationFunction == 'fuzzy_dilation') or (ActivationFunction == 'bitwise-erosion') or (ActivationFunction == 'bitwise_erosion') or (ActivationFunction == 'bitwise-dilation') or (ActivationFunction == 'bitwise_dilation') :
             #InputWeight = np.random.uniform(np.amin(np.amin(P)), np.amax(np.amax(P)), (NumberofHiddenNeurons,NumberofInputNeurons))
             if np.array_equal(NeuronStack, []):
-                print('classValues',classValues, 'counterClassValues',counterClassValues ,sep='\n')
+                #print('classValues',classValues, 'counterClassValues',counterClassValues ,sep='\n')
                 classCalc = np.nanmean(classValues, axis = 0)                                               #Average
                 counterClassCalc = np.nanmean(counterClassValues, axis = 0)                                 #Average
-                #classCalc = np.nanmedian(classValues, axis = 0)                                                      #Median 
-                #counterClassCalc = np.nanmedian(counterClassValues, axis = 0)                                        #Median
+                #classCalc = np.nanmedian(classValues, axis = 0)                                            #Median
+                #counterClassCalc = np.nanmedian(counterClassValues, axis = 0)                              #Median
                 #classCalc = stats.mode(classValues, axis = 0 , keepdims= True , nan_policy= 'omit')[0]                      #Mode
                 #counterClassCalc = stats.mode(counterClassValues, axis = 0 ,  keepdims= True ,  nan_policy= 'omit')[0]      #Mode
                 #print('classCalc',classCalc, 'counterClassCalc',counterClassCalc ,sep='\n')
@@ -135,23 +135,23 @@ class melm():
         else:
             InputWeight=np.random.rand(NumberofHiddenNeurons,NumberofInputNeurons)*2-1;
 
-            
+
         #BiasofHiddenNeurons=np.random.rand(NumberofHiddenNeurons,1);
         #BiasofHiddenNeurons = np.zeros((NumberofHiddenNeurons,1))
         if np.array_equal(NeuronStack, []):
             BiasofHiddenNeurons = np.nan_to_num(np.matrix([[0],[0],[classStd],[counterClassStd],[-classStd],[-counterClassStd]]) , nan = 0)
         else:
             BiasofHiddenNeurons = np.nan_to_num(BiasArray , nan = 0)
-        print(BiasofHiddenNeurons)
+        #print(BiasofHiddenNeurons)
         if verbose: print ('Calculate hidden neuron output matrix H')
         #%%%%%%%%%%% Calculate hidden neuron output matrix H
-        print('ActivationFunction: ', ActivationFunction, 'InputWeight: ', InputWeight, 'BiasofHiddenNeurons: ', BiasofHiddenNeurons, 'P: ', P, sep='\n')
+        #print('ActivationFunction: ', ActivationFunction, 'InputWeight: ', InputWeight, 'BiasofHiddenNeurons: ', BiasofHiddenNeurons, 'P: ', P, sep='\n')
         H = switchActivationFunction(ActivationFunction,InputWeight,BiasofHiddenNeurons,P)
-        
+
         if verbose: print ('Calculate output weights OutputWeight (beta_i)')
         #%%%%%%%%%%% Calculate output weights OutputWeight (beta_i)
         OutputWeight = np.dot(np.linalg.pinv(np.transpose(H)), np.transpose(T))
-        
+
         end_time_train =  process_time()
         TrainingTime=end_time_train-start_time_train       # %   Calculate CPU time (seconds) spent for training ELM
 
@@ -160,15 +160,15 @@ class melm():
         Y = np.transpose(np.dot(np.transpose(H), OutputWeight))                     #%   Y: the actual output of the training data
 
         TrainingAccuracy = 0
-        if Elm_Type == self.REGRESSION:        
-            if verbose: print ('Calculate training accuracy (RMSE) for regression case')  
+        if Elm_Type == self.REGRESSION:
+            if verbose: print ('Calculate training accuracy (RMSE) for regression case')
             #   Calculate training accuracy (RMSE) for regression case
             TrainingAccuracy = np.square(np.subtract(T, Y)).mean()
-            TrainingAccuracy = round(TrainingAccuracy, 6) 
+            TrainingAccuracy = round(TrainingAccuracy, 6)
             print('Training Accuracy: ' + str(TrainingAccuracy)+' ( ' + str(np.size(Y,0)) + ' samples) (regression)')
         del(H)
-        
-        if verbose: print ('Calculate the output of testing input')  
+
+        if verbose: print ('Calculate the output of testing input')
         start_time_test = process_time()
         #%%%%%%%%%%% Calculate the output of testing input
         tempH_test = switchActivationFunction(ActivationFunction,InputWeight,BiasofHiddenNeurons,TVP)
@@ -180,15 +180,15 @@ class melm():
         TestingTime=end_time_test-start_time_test           #%   Calculate CPU time (seconds) spent by ELM predicting the whole testing data
 
         TestingAccuracy = 0
-        if Elm_Type == self.REGRESSION:          
-            if verbose: print ('Calculate testing accuracy (RMSE) for regression case')  
+        if Elm_Type == self.REGRESSION:
+            if verbose: print ('Calculate testing accuracy (RMSE) for regression case')
             #   Calculate testing accuracy (RMSE) for regression case
             TestingAccuracy = np.square(np.subtract(TVT, TY)).mean()
-            TestingAccuracy = round(TestingAccuracy, 6) 
+            TestingAccuracy = round(TestingAccuracy, 6)
             print('Testing Accuracy: ' + str(TestingAccuracy)+' ( ' + str(np.size(TY,0)) + ' samples) (regression)')
 
         if Elm_Type == self.CLASSIFIER:
-            if verbose: print ('Calculate training & testing classification accuracy')  
+            if verbose: print ('Calculate training & testing classification accuracy')
             #%%%%%%%%%% Calculate training & testing classification accuracy
             MissClassificationRate_Training=0
             MissClassificationRate_Testing=0
@@ -203,9 +203,9 @@ class melm():
             train_data_2 = train_data_2.drop(CorrectIndexes)
             train_data_2 = train_data_2.reset_index(drop=True)
             TrainingAccuracy = 1-MissClassificationRate_Training/np.size(label_index_expected,0)
-            TrainingAccuracy = round(TrainingAccuracy, 6) 
+            TrainingAccuracy = round(TrainingAccuracy, 6)
             print('Training Accuracy: ' + str(TrainingAccuracy*100)+' % (',str(np.size(label_index_expected,0)-MissClassificationRate_Training),'/',str(np.size(label_index_expected,0)),') (classification)')
-            
+
             label_index_expected = np.argmax(TVT, axis=0)   # Maxima along the second axis
             label_index_actual = np.argmax(TY, axis=0)   # Maxima along the second axis
             CorrectIndexesTest= np.array([])
@@ -215,12 +215,12 @@ class melm():
                 else:
                         CorrectIndexesTest = np.append(CorrectIndexesTest, i)
             TestingAccuracy=1-MissClassificationRate_Testing/np.size(label_index_expected,0)
-            TestingAccuracy = round(TestingAccuracy, 6) 
+            TestingAccuracy = round(TestingAccuracy, 6)
             test_data_2 = test_data_2.drop(CorrectIndexesTest)
             dSet2 = pd.concat([train_data_2, test_data_2], ignore_index=True)
-            
+
             print('Testing Accuracy: ' + str(TestingAccuracy*100)+' % (',str(np.size(label_index_expected,0)-MissClassificationRate_Testing),'/',str(np.size(label_index_expected,0)),') (classification)')
-            
+
             print('Training Time: ' + str(round(TrainingTime,6)) + ' seconds')
             print('Testing Time: ' + str(round(TestingTime,6)) + ' seconds')
             return [dSet2, [TrainingAccuracy*100, TestingAccuracy*100], InputWeight, BiasofHiddenNeurons]
@@ -236,36 +236,36 @@ def MakeTrainTest(dSet, percentTraining):
 
 def ProcessCSV(Benign_address , Malign_address):
     #This dataset is divided into malign and benign, so we need to merge them in a random way into a training array and a testing array
-    
+
     #   @ - load malign and benign data
     malign = pd.read_csv(Malign_address, sep=';', decimal=".", header=None, low_memory= False)
-        #This part is subjective to each dataset and should be changed if the dataset is changed 
+        #This part is subjective to each dataset and should be changed if the dataset is changed
     malign = malign.drop([malign.columns[0], malign.columns[-1]], axis=1)
     malign = malign.drop([0])
     malign.insert(0,0, np.ones(len(malign))) #add a column of ones to the class dataset
-    
+
     benign = pd.read_csv(Benign_address, sep=';', decimal=".", header=None, low_memory = False)
-        #This part is subjective to each dataset and should be changed if the dataset is changed 
+        #This part is subjective to each dataset and should be changed if the dataset is changed
     benign = benign.drop([benign.columns[0], benign.columns[-1]], axis=1) # remove first and last columns which is text and NaN respectively
     benign = benign.drop([0]) #remove first row which is only text
     benign.insert(0,0, np.zeros(len(benign))) #add a column of zeros to the counter-class dataset
     #   @ - merge the two datasets, making a training dataset and a testing dataset
     dSet = pd.concat([malign, benign], ignore_index=True)
     return dSet
-    
+
 def euclidianDistance(x1, x2):
     return np.sqrt(np.sum((x1-x2)**2))
-        
+
 #========================================================================
 def switchActivationFunction(ActivationFunction,InputWeight,BiasofHiddenNeurons,P):
-    
+
     if (ActivationFunction == 'sig') or (ActivationFunction == 'sigmoid'):
         H = sig_kernel(InputWeight, BiasofHiddenNeurons, P)
     elif (ActivationFunction == 'sin') or (ActivationFunction == 'sine'):
         H = sin_kernel(InputWeight, BiasofHiddenNeurons, P)
     elif (ActivationFunction == 'hardlim'):
         H = hardlim_kernel(InputWeight, BiasofHiddenNeurons, P)
-    elif (ActivationFunction == 'tribas'): 
+    elif (ActivationFunction == 'tribas'):
         H = tribas_kernel(InputWeight, BiasofHiddenNeurons, P)
     elif (ActivationFunction == 'radbas'):
         H = radbas_kernel(InputWeight, BiasofHiddenNeurons, P)
@@ -294,7 +294,7 @@ def sig_kernel(w1, b1, samples):
 def sin_kernel(w1, b1, samples):
     #%%%%%%%% Sine
     tempH = np.dot(w1, samples) + b1
-    H = np.sin(tempH)   
+    H = np.sin(tempH)
     return H
 #========================================================================
 def hardlim_kernel(w1, b1, samples):
@@ -354,7 +354,7 @@ def dilation(w1, b1, samples):
 
     H = np.zeros((np.size(w1,0), np.size(samples,1)))
     x = np.zeros(np.size(w1,1))
-    
+
     for s_index in range(np.size(samples,1)):
         ss = samples.loc[:,s_index]
         for i in range(np.size(w1,0)):
@@ -365,21 +365,21 @@ def dilation(w1, b1, samples):
     return H
 #========================================================================
 def fuzzy_erosion(w1, b1, samples):
-    
+
     tempH = np.dot(w1, samples) + b1
     H = np.ones((np.size(w1,0), np.size(samples,1)))
-    
+
     for s_index in range(np.size(samples,1)):
         ss = samples.loc[:,s_index]
         for i in range(np.size(w1,0)):
-            H[i][s_index] = 1- tempH[i][s_index] 
+            H[i][s_index] = 1- tempH[i][s_index]
     return H
 #========================================================================
 def fuzzy_dilation(w1, b1, samples):
 
     tempH = np.dot(w1, samples) + b1
     H = np.ones((np.size(w1,0), np.size(samples,1)))
-    
+
     for s_index in range(np.size(samples,1)):
         ss = samples.loc[:,s_index]
         for i in range(np.size(w1,0)):
@@ -403,7 +403,7 @@ def bitwise_erosion(w1, b1, samples):
             for j in range(1, np.size(w1,1)):
                 result = bytes_and(result, x[j])
             temp = struct.unpack('d', result)[0]
-            if math.isnan(temp): temp = 0.0 
+            if math.isnan(temp): temp = 0.0
             H[i][s_index] = temp + b1[i][0]
     return H
 #========================================================================
@@ -421,34 +421,34 @@ def bitwise_dilation(w1, b1, samples):
             for j in range(1, np.size(w1,1)):
                 result = bytes_or(result, x[j])
             temp = struct.unpack('d', result)[0]
-            if math.isnan(temp): temp = 0.0 
+            if math.isnan(temp): temp = 0.0
             H[i][s_index] = temp + b1[i][0]
     return H
 
-#========================================================================	
+#========================================================================
 def bytes_and(a, b) :
     a1 = bytearray(a)
     b1 = bytearray(b)
     c = bytearray(len(a1))
-    
+
     for i in range(len(a1)):
         c[i] = a1[i] & b1[i]
     return c
-    
-#========================================================================	
+
+#========================================================================
 def bytes_or(a, b) :
     a1 = bytearray(a)
     b1 = bytearray(b)
     c = bytearray(len(a1))
-    
+
     for i in range(len(a1)):
         c[i] = a1[i] | b1[i]
     return c
-    
+
 #========================================================================
-def setOpts(argv):                         
+def setOpts(argv):
     parser = argparse.ArgumentParser()
-    parser.add_argument('-tr', '--TrainingData_File',dest='TrainingData_File',action='store',required=True, 
+    parser.add_argument('-tr', '--TrainingData_File',dest='TrainingData_File',action='store',required=True,
         help="Filename of training data set")
     parser.add_argument('-ts', '--TestingData_File',dest='TestingData_File',action='store',required=True,
         help="Filename of testing data set")
@@ -456,15 +456,15 @@ def setOpts(argv):
         help="0 for regression; 1 for (both binary and multi-classes) classification")
     parser.add_argument('-nh', '--nHiddenNeurons',dest='nHiddenNeurons',action='store',required=False,
         help="Number of hidden neurons assigned to the OSELM")
-    parser.add_argument('-af', '--ActivationFunction',dest='ActivationFunction',action='store', 
+    parser.add_argument('-af', '--ActivationFunction',dest='ActivationFunction',action='store',
         help="Type of activation function:")
-    parser.add_argument('-sd', '--seed',dest='nSeed',action='store', 
+    parser.add_argument('-sd', '--seed',dest='nSeed',action='store',
         help="random number generator seed:")
     parser.add_argument('-v', dest='verbose', action='store_true',default=False,
         help="Verbose output")
     arg = parser.parse_args()
-    return(arg.__dict__['TrainingData_File'], arg.__dict__['TestingData_File'], arg.__dict__['Elm_Type'], arg.__dict__['nHiddenNeurons'], 		
-        arg.__dict__['ActivationFunction'], arg.__dict__['nSeed'], arg.__dict__['verbose'])	
+    return(arg.__dict__['TrainingData_File'], arg.__dict__['TestingData_File'], arg.__dict__['Elm_Type'], arg.__dict__['nHiddenNeurons'],
+        arg.__dict__['ActivationFunction'], arg.__dict__['nSeed'], arg.__dict__['verbose'])
 #========================================================================
 if __name__ == "__main__":
     Values = []
@@ -504,9 +504,9 @@ if __name__ == "__main__":
                 break
 
     print('Pesos: ', Weights)
-    
+
     print('Acurácias:', Accuracies)
-    
-    
+
+
 #========================================================================
 
