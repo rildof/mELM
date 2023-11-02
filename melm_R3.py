@@ -47,7 +47,7 @@ class melm():
         classValues = (classValues.reset_index(drop=True))
         counterClassValues = train_data.loc[train_data[0] == 0.000000]
         counterClassValues = (counterClassValues.reset_index(drop=True))
-
+        print(classValues, counterClassValues)
 
         if verbose: print ('Load testing dataset')
         #%%%%%%%%%%% Load testing dataset
@@ -148,7 +148,7 @@ class melm():
 
         if verbose: print ('Calculate hidden neuron output matrix H')
         #%%%%%%%%%%% Calculate hidden neuron output matrix H
-        print('ActivationFunction: ', ActivationFunction, 'InputWeight: ', InputWeight, 'BiasofHiddenNeurons: ', BiasofHiddenNeurons, 'P: ', P, sep='\n')
+        #print('ActivationFunction: ', ActivationFunction, 'InputWeight: ', InputWeight, 'BiasofHiddenNeurons: ', BiasofHiddenNeurons, 'P: ', P, sep='\n')
         H = switchActivationFunction(ActivationFunction,InputWeight,BiasofHiddenNeurons,P)
 
         if verbose: print ('Calculate output weights OutputWeight (beta_i)')
@@ -228,7 +228,7 @@ class melm():
             print('Testing Time: ' + str(round(TestingTime,6)) + ' seconds')
             zipped = ['InputWeight:',InputWeight,'OutputWeight', OutputWeight,'Saída',Y]
             file = open("log.txt", "a")
-            print(zipped)
+            #print(zipped)
             file.write('InputWeight\n')
             np.savetxt(file, InputWeight, fmt='%s')
             np.savetxt(file, InputWeight.shape, fmt='%s')
@@ -252,7 +252,7 @@ def MakeTrainTest(dSet, percentTraining):
     ##print(train_data, test_data)
     return [train_data, test_data]
 
-def ProcessCSV(Benign_address , Malign_address , pvalue=0.2):
+def ProcessCSV(Benign_address , Malign_address , pvalue=0.05):
     #This dataset is divided into malign and benign, so we need to merge them in a random way into a training array and a testing array
     #   @ - load malign and benign data
     malign = pd.read_csv(Malign_address, sep=';', decimal=".", header=None, low_memory= False)
@@ -287,6 +287,43 @@ def ProcessCSV(Benign_address , Malign_address , pvalue=0.2):
     indices = corr_df[condicao]
 
     dSet = dSet[list(indices.index)]
+    return dSet.reset_index(drop=True)
+
+def ProcessCSV_2(Benign_address , Malign_address , pvalue=1):
+    #This dataset is divided into malign and benign, so we need to merge them in a random way into a training array and a testing array
+    #   @ - load malign and benign data
+    malign = pd.read_csv(Malign_address, sep=',', decimal=".", header=None, low_memory= False)
+        #This part is subjective to each dataset and should be changed if the dataset is changed
+    malign = malign.drop([malign.columns[-1]], axis=1)
+    malign = malign.drop([0])
+    malign = malign.astype('float64')  # Convert string to int64
+    #malign = malign.replace(0,-0.1)
+    malign.insert(0,0, np.ones(len(malign)) , allow_duplicates = True) #add a column of ones to the class dataset
+    benign = pd.read_csv(Benign_address, sep=',', decimal=".", header=None, low_memory = False)
+        #This part is subjective to each dataset and should be changed if the dataset is changed
+    benign = benign.drop([benign.columns[-1]], axis=1) # remove first and last columns which is text and NaN respectively
+    benign = benign.drop([0]) #remove first row which is only text
+    benign = benign.astype('float64') # Convert string to int64
+    #benign = benign.replace(0, -0.1)
+    benign.insert(0,0, np.zeros(len(benign)), allow_duplicates= True) #add a column of zeros to the counter-class dataset
+    #   @ - merge the two datasets, making a training dataset and a testing dataset
+    dSet = pd.concat([malign, benign], ignore_index=True)
+    dSet = remove_uniform_columns(dSet)
+
+    #corr_df = pd.DataFrame(columns=['r', 'p-value'])
+
+    #for col in dSet:  # Use this to loop through the DataFrame
+    #    if pd.api.types.is_numeric_dtype(dSet[col]):  # Only calculate r, p-value for the numeric columns
+    #        r, p = stats.pearsonr(dSet[0], dSet[
+    #            col])  # .pearsonr() returns two values in a list, store them individually using this format
+            # r and p-values are calculated in comparison with what it is(benign or malign)
+    #        corr_df.loc[col] = [round(r, 3), round(p, 3)]  # Add the r & p for this col into the corr_df
+
+    #condicao = corr_df['p-value'] < pvalue
+    #indices = corr_df[condicao]
+
+    #print(dSet)
+    #dSet = dSet[list(indices.index)]
     return dSet.reset_index(drop=True)
 
 def euclidianDistance(x1, x2):
@@ -530,7 +567,7 @@ if __name__ == "__main__":
             #Weights.append(Dataset[i][2])
             Weights = np.row_stack((Weights,Dataset[i][2]))
             Biases = np.row_stack((Biases,Dataset[i][3]))
-            if (Dataset[i][1])[0] == 100.0  and (Dataset[i][1])[1] == 100.0 or i == 5 :
+            if (Dataset[i][1])[0] == 100.0  and (Dataset[i][1])[1] == 100.0 or i == 4 :
                 #print('Acurácia chegou em 100% no treinamento na iteração: ', i)
                 #print(Weights)
                 #print(Weights[~np.isnan(Weights).any(axis=1)])
