@@ -9,10 +9,16 @@ import sys,string
 import argparse
 import numpy as np
 import pandas as pd
+def processCSV(Data_File):
+	data = pd.read_csv(Data_File, sep=' ', decimal=".", header=None)
+	for ii in reversed(range(np.size(data, 1))):
+		if np.isnan(data.loc[:, ii]).all():
+			data.drop(data.columns[ii], axis=1, inplace=True)
 
+	return data
 #========================================================================
 class melm():
-	def main(self,TrainingData_File, TestingData_File,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose):
+	def main(self,train_data, test_data,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose):
 				
 		if ActivationFunction is None:
 			ActivationFunction = 'linear'
@@ -34,10 +40,6 @@ class melm():
 
 		if verbose: print ('Load training dataset')
 		#%%%%%%%%%%% Load training dataset
-		train_data=pd.read_csv(TrainingData_File, sep=' ', decimal=".", header=None)
-		for ii in reversed(range(np.size(train_data,1))):
-			if np.isnan(train_data.loc[:,ii]).all():
-				train_data.drop(train_data.columns[ii], axis=1, inplace=True)
 
 		T=np.transpose(train_data.loc[:,0])
 		P=np.transpose(train_data.loc[:,1:np.size(train_data,1)])
@@ -47,10 +49,6 @@ class melm():
 		
 		if verbose: print ('Load testing dataset')
 		#%%%%%%%%%%% Load testing dataset
-		test_data=pd.read_csv(TestingData_File, sep=' ', decimal=".", header=None)
-		for ii in reversed(range(np.size(test_data,1))):
-			if np.isnan(test_data.loc[:,ii]).all():
-				test_data.drop(test_data.columns[ii], axis=1, inplace=True)
 		
 		TVT=np.transpose(test_data.loc[:,0])
 		TVP=np.transpose(test_data.loc[:,1:np.size(test_data,1)])
@@ -105,7 +103,7 @@ class melm():
 
 		if verbose: print ('Random generate input weights InputWeight (w_i) and biases BiasofHiddenNeurons (b_i) of hidden neurons')
 		#%%%%%%%%%%% Random generate input weights InputWeight (w_i) and biases BiasofHiddenNeurons (b_i) of hidden neurons
-		
+		print(P)
 		if (ActivationFunction == 'erosion') or (ActivationFunction == 'dilation') or (ActivationFunction == 'fuzzy-erosion') or (ActivationFunction == 'fuzzy_erosion') or (ActivationFunction == 'fuzzy-dilation') or (ActivationFunction == 'fuzzy_dilation') or (ActivationFunction == 'bitwise-erosion') or (ActivationFunction == 'bitwise_erosion') or (ActivationFunction == 'bitwise-dilation') or (ActivationFunction == 'bitwise_dilation') :
 			InputWeight = np.random.uniform(np.amin(np.amin(P)), np.amax(np.amax(P)), (NumberofHiddenNeurons,NumberofInputNeurons))
 		else:
@@ -132,7 +130,8 @@ class melm():
 		if Elm_Type == self.REGRESSION:        
 			if verbose: print ('Calculate training accuracy (RMSE) for regression case')  
 			#   Calculate training accuracy (RMSE) for regression case
-			TrainingAccuracy = np.square(np.subtract(T, Y)).mean()
+			RMSE_tr = np.square(np.subtract(T,Y))
+			TrainingAccuracy = RMSE_tr.mean()
 			TrainingAccuracy = round(TrainingAccuracy, 6) 
 			print('Training Accuracy: ' + str(TrainingAccuracy)+' ( ' + str(np.size(Y,0)) + ' samples) (regression)')
 		del(H)
@@ -141,7 +140,7 @@ class melm():
 		start_time_test = process_time()
 		#%%%%%%%%%%% Calculate the output of testing input
 		tempH_test = switchActivationFunction(ActivationFunction,InputWeight,BiasofHiddenNeurons,TVP)
-		del(TVP)
+		#del(TVP)
 
 		TY = np.transpose(np.dot(np.transpose(tempH_test), OutputWeight))                     #%   Y: the actual output of the training data
 
@@ -152,7 +151,8 @@ class melm():
 		if Elm_Type == self.REGRESSION:          
 			if verbose: print ('Calculate testing accuracy (RMSE) for regression case')  
 			#   Calculate testing accuracy (RMSE) for regression case
-			TestingAccuracy = np.square(np.subtract(TVT, TY)).mean()
+			RMSE_ts = np.square(np.subtract(TVT, TY))
+			TestingAccuracy = RMSE_ts.mean()
 			TestingAccuracy = round(TestingAccuracy, 6) 
 			print('Testing Accuracy: ' + str(TestingAccuracy)+' ( ' + str(np.size(TY,0)) + ' samples) (regression)')
 
@@ -186,6 +186,17 @@ class melm():
 			
 			print('Training Time: ' + str(round(TrainingTime,6)) + ' seconds')
 			print('Testing Time: ' + str(round(TestingTime,6)) + ' seconds')
+
+		#	Get testing values that have a Root Mean Squared Error (RMSE) greater than the limit for next iteration
+		RMSE_ts = RMSE_ts.sort_values(ascending=False)
+		error_limit = 5e-3
+		newdata_index = [RMSE_ts.index[i] for i in range(len(RMSE_ts)) if RMSE_ts[i] >= error_limit]
+		new_train = pd.concat([TVT[newdata_index], np.transpose(TVP[newdata_index])] , axis=1)
+
+		newdata_index = [RMSE_tr.index[i] for i in range(len(RMSE_tr)) if RMSE_tr[i] >= error_limit]
+		new_test = pd.concat([T[newdata_index], np.transpose(P[newdata_index])], axis=1)
+
+		return new_train, new_test
 #========================================================================
 def switchActivationFunction(ActivationFunction,InputWeight,BiasofHiddenNeurons,P):
 	
@@ -284,11 +295,13 @@ def dilation(w1, b1, samples):
 
 	H = np.zeros((np.size(w1,0), np.size(samples,1)))
 	x = np.zeros(np.size(w1,1))
-	
+
 	for s_index in range(np.size(samples,1)):
 		ss = samples.loc[:,s_index]
 		for i in range(np.size(w1,0)):
 			for j in range(np.size(w1,1)):
+				#print(ss.loc[j], w1[i][j])
+				#print(type(ss.loc[j]) , type(w1[i][j]))
 				x[j] = min(ss.loc[j], w1[i][j])
 			H[i][s_index] = max(x)+b1[i][0]
 
@@ -397,8 +410,19 @@ def setOpts(argv):
 		arg.__dict__['ActivationFunction'], arg.__dict__['nSeed'], arg.__dict__['verbose'])	
 #========================================================================
 if __name__ == "__main__":
+
 	opts = setOpts(sys.argv[1:])
 	ff = melm()
-	ff.main(opts[0], opts[1], opts[2], opts[3], opts[4], opts[5], opts[6])
-#========================================================================
+	while True:
+		print('iteration 1:')
+		print(processCSV(opts[0]), processCSV(opts[1]), sep='\n --------------------- \n')
+		new_train, new_test = ff.main(processCSV(opts[0]), processCSV(opts[1]), opts[2], opts[3], opts[4], opts[5], opts[6])
+		new_train, new_test = new_train.reset_index(drop=True), new_test.reset_index(drop=True)
+		print(new_train, new_test, sep='\n ---------\n')
+		print('iteration 2:')
+		new_train, new_test = ff.main(np.transpose(new_train), np.transpose(new_test), opts[2], opts[3], opts[4], opts[5], opts[6])
+		break
 
+
+
+#========================================================================
