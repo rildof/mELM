@@ -1,5 +1,6 @@
 
 #source melm code, only added log lines of code so it is comparable to the authoral one
+#Also added graphing for comparison
 from math import *
 from random import *
 from time import process_time
@@ -12,12 +13,14 @@ import argparse
 import numpy as np
 import pandas as pd
 
+from melm_lib import graph_Train_Test
+
 class melm():
 	def __init__(self):
 		self.Accuracies = [[0,0]]
 	def getLastAccuracy(self):
 		return self.Accuracies[-1]
-	def main(self,TrainingData_File, TestingData_File,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose):
+	def main(self,TrainingData_File, TestingData_File,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, plot):
 				
 		if ActivationFunction is None:
 			ActivationFunction = 'linear'
@@ -149,7 +152,7 @@ class melm():
 		del(TVP)
 
 		TY = np.transpose(np.dot(np.transpose(tempH_test), OutputWeight))                     #%   Y: the actual output of the training data
-
+		if plot: graph_Train_Test([T, Y], [TVT, TY], 'Source mELM')
 		end_time_test = process_time()
 		TestingTime=end_time_test-start_time_test           #%   Calculate CPU time (seconds) spent by ELM predicting the whole testing data
 

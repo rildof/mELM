@@ -9,26 +9,27 @@ import sys,string
 import argparse
 import numpy as np
 import pandas as pd
+import plotly.express as px
 from melm_source import melm
-def processCSV(Data_File):
-	data = pd.read_csv(Data_File, sep=' ', decimal=".", header=None)
-	for ii in reversed(range(np.size(data, 1))):
-		if np.isnan(data.loc[:, ii]).all():
-			data.drop(data.columns[ii], axis=1, inplace=True)
+from melm_lib import processCSV, graph_Train_Test
 
-	return data
+
 #========================================================================
 class authoral_melm():
 
-	def __init__(self):
+	def __init__(self, error_limit):
 		self.weights = []
 		self.Accuracies = []
+		self.error_limit = error_limit
 
 	def getLastAccuracy(self):
 		return self.Accuracies[-1]
 	def getWeightsLength(self):
 		return len(self.weights)
-	def main(self,train_data, test_data,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, lastRun):
+
+	def changeErrorLimit(self, error_limit):
+		self.error_limit = error_limit
+	def main(self,train_data, test_data,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, lastRun, plot):
 				
 		if ActivationFunction is None:
 			ActivationFunction = 'linear'
@@ -115,23 +116,23 @@ class authoral_melm():
 		#print(P)
 		if (ActivationFunction == 'erosion') or (ActivationFunction == 'dilation') or (ActivationFunction == 'fuzzy-erosion') or (ActivationFunction == 'fuzzy_erosion') or (ActivationFunction == 'fuzzy-dilation') or (ActivationFunction == 'fuzzy_dilation') or (ActivationFunction == 'bitwise-erosion') or (ActivationFunction == 'bitwise_erosion') or (ActivationFunction == 'bitwise-dilation') or (ActivationFunction == 'bitwise_dilation') :
 
-			if lastRun == True:
+			if lastRun:
 				NumberofHiddenNeurons = len(self.weights) or 1
 				InputWeight = np.array(self.weights)
 				InputWeight = np.reshape(InputWeight, (len(self.weights),1))
 			else:
-				#self.weights.append(np.nanmean(P))
+				self.weights.append(np.nanmean(P))
 				NumberofHiddenNeurons = 1
-				#InputWeight = np.reshape(np.array(np.nanmean(P)), (1,1))
-				InputWeight = np.random.uniform(np.amin(np.amin(P)), np.amax(np.amax(P)),
-												(NumberofHiddenNeurons, NumberofInputNeurons))
-				self.weights.append(InputWeight)
+				InputWeight = np.reshape(np.array(np.nanmean(P)), (1,1))
+				#InputWeight = np.random.uniform(np.amin(np.amin(P)), np.amax(np.amax(P)),
+				#								(NumberofHiddenNeurons, NumberofInputNeurons))
+				#self.weights.append(InputWeight)
 
 		else:
 			InputWeight=np.random.rand(NumberofHiddenNeurons,NumberofInputNeurons)*2-1;
 
 
-		if lastRun == True:
+		if lastRun:
 			BiasofHiddenNeurons= np.random.rand(len(self.weights),1);
 		else:
 			BiasofHiddenNeurons = np.random.rand(1,1)
@@ -152,6 +153,7 @@ class authoral_melm():
 		#%%%%%%%%%%% Calculate the training accuracy
 		Y = np.transpose(np.dot(np.transpose(H), OutputWeight))                     #%   Y: the actual output of the training data
 
+
 		TrainingAccuracy = 0
 		if Elm_Type == self.REGRESSION:        
 			if verbose: print ('Calculate training accuracy (RMSE) for regression case')  
@@ -169,6 +171,8 @@ class authoral_melm():
 		#del(TVP)
 
 		TY = np.transpose(np.dot(np.transpose(tempH_test), OutputWeight))                     #%   Y: the actual output of the training data
+		#TODO make plotly graph implementation
+		if plot: graph_Train_Test([T, Y], [TVT, TY], 'Source mELM')
 
 		end_time_test = process_time()
 		TestingTime=end_time_test-start_time_test           #%   Calculate CPU time (seconds) spent by ELM predicting the whole testing data
@@ -216,12 +220,12 @@ class authoral_melm():
 		#	Get testing values that have a Root Mean Squared Error (RMSE) greater than the limit for next iteration
 		self.Accuracies.append([TrainingAccuracy, TestingAccuracy])
 
-		error_limit = 5e-1
 
-		newdata_index = [RMSE_tr.index[i] for i in range(len(RMSE_tr)) if RMSE_tr[i] >= error_limit]
+
+		newdata_index = [RMSE_tr.index[i] for i in range(len(RMSE_tr)) if RMSE_tr[i] >= self.error_limit]
 		new_train = pd.concat([T[newdata_index], np.transpose(P[newdata_index])] , axis=1)
 
-		newdata_index = [RMSE_ts.index[i] for i in range(len(RMSE_ts)) if RMSE_ts[i] >= error_limit]
+		newdata_index = [RMSE_ts.index[i] for i in range(len(RMSE_ts)) if RMSE_ts[i] >= self.error_limit]
 		new_test = pd.concat([TVT[newdata_index], np.transpose(TVP[newdata_index])], axis=1)
 		return new_train, new_test
 
@@ -434,26 +438,29 @@ def setOpts(argv):
 		help="random number generator seed:")
 	parser.add_argument('-v', dest='verbose', action='store_true',default=False,
 		help="Verbose output")
+	parser.add_argument('-el', dest='error_limit', action='store', default=5e-5,
+						help="Error Limit")
 	arg = parser.parse_args()
 	return(arg.__dict__['TrainingData_File'], arg.__dict__['TestingData_File'], arg.__dict__['Elm_Type'], arg.__dict__['nHiddenNeurons'], 		
-		arg.__dict__['ActivationFunction'], arg.__dict__['nSeed'], arg.__dict__['verbose'])	
+		arg.__dict__['ActivationFunction'], arg.__dict__['nSeed'], arg.__dict__['verbose'], arg.__dict__['error_limit'])
 #========================================================================
 if __name__ == "__main__":
 
 	opts = setOpts(sys.argv[1:])
-	ff = authoral_melm()
+	ff = authoral_melm(float(opts[7]))
+	print(opts[7])
 	i = 2
 	iteration_limit = 11
 
 	print('iteration 1')
 	new_train, new_test = ff.main(processCSV(opts[0]), processCSV(opts[1]), opts[2], opts[3], opts[4], opts[5], opts[6],
-								  False)
+								  False, False)
 	new_train, new_test = new_train.reset_index(drop=True), new_test.reset_index(drop=True)
 	new_train.columns, new_test.columns = range(new_train.columns.size), range(new_test.columns.size)
 
 	while True:
 		print(f'iteration {i}:')
-		new_train, new_test = ff.main(new_train, new_test, opts[2], opts[3], opts[4], opts[5], opts[6], False)
+		new_train, new_test = ff.main(new_train, new_test, opts[2], opts[3], opts[4], opts[5], opts[6], False, False)
 		new_train, new_test = new_train.reset_index(drop=True), new_test.reset_index(drop=True)
 		new_train.columns, new_test.columns = range(new_train.columns.size), range(new_test.columns.size)
 		i += 1
@@ -463,13 +470,13 @@ if __name__ == "__main__":
 
 	print('last iteration, with all hidden neurons combined')
 	new_train, new_test = ff.main(processCSV(opts[0]), processCSV(opts[1]), opts[2], opts[3], opts[4], opts[5], opts[6],
-									  True)
+									  True, True)
 
+	#run source mELM to compare with authoral
 
-	gg = melm()
-	print(opts)
-	gg.main(opts[0], opts[1], opts[2], ff.getWeightsLength(), opts[4], opts[5],opts[6])
+	#gg = melm()
+	#gg.main(opts[0], opts[1], opts[2], ff.getWeightsLength(), opts[4], opts[5],opts[6], True)
 	print(ff.getLastAccuracy())
-	print(gg.getLastAccuracy())
+	#print(gg.getLastAccuracy())
 
 #========================================================================
