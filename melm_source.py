@@ -18,6 +18,10 @@ from melm_lib import graph_Train_Test
 class melm():
 	def __init__(self):
 		self.Accuracies = [[0,0]]
+		self.inputOutput = []
+
+	def getInputOutput(self):
+		return self.inputOutput
 	def getLastAccuracy(self):
 		return self.Accuracies[-1]
 	def main(self,TrainingData_File, TestingData_File,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, plot):
@@ -42,11 +46,11 @@ class melm():
 
 		if verbose: print ('Load training dataset')
 		#%%%%%%%%%%% Load training dataset
-		train_data=pd.read_csv(TrainingData_File, sep=' ', decimal=".", header=None)
-		for ii in reversed(range(np.size(train_data,1))):
-			if np.isnan(train_data.loc[:,ii]).all():
-				train_data.drop(train_data.columns[ii], axis=1, inplace=True)
-
+		#train_data=pd.read_csv(TrainingData_File, sep=' ', decimal=".", header=None)
+		#for ii in reversed(range(np.size(train_data,1))):
+		#	if np.isnan(train_data.loc[:,ii]).all():
+		#		train_data.drop(train_data.columns[ii], axis=1, inplace=True)
+		train_data = TrainingData_File
 		T=np.transpose(train_data.loc[:,0])
 		P=np.transpose(train_data.loc[:,1:np.size(train_data,1)])
 		T = T.reset_index(drop=True)
@@ -55,10 +59,11 @@ class melm():
 		
 		if verbose: print ('Load testing dataset')
 		#%%%%%%%%%%% Load testing dataset
-		test_data=pd.read_csv(TestingData_File, sep=' ', decimal=".", header=None)
-		for ii in reversed(range(np.size(test_data,1))):
-			if np.isnan(test_data.loc[:,ii]).all():
-				test_data.drop(test_data.columns[ii], axis=1, inplace=True)
+		test_data = TestingData_File
+		#test_data=pd.read_csv(TestingData_File, sep=' ', decimal=".", header=None)
+		#for ii in reversed(range(np.size(test_data,1))):
+		#	if np.isnan(test_data.loc[:,ii]).all():
+		#		test_data.drop(test_data.columns[ii], axis=1, inplace=True)
 		
 		TVT=np.transpose(test_data.loc[:,0])
 		TVP=np.transpose(test_data.loc[:,1:np.size(test_data,1)])
@@ -154,6 +159,7 @@ class melm():
 		TY = np.transpose(np.dot(np.transpose(tempH_test), OutputWeight))                     #%   Y: the actual output of the training data
 		if plot: graph_Train_Test([T, Y], [TVT, TY], 'Source mELM')
 		end_time_test = process_time()
+		self.inputOutput = [T,Y,TVT,TY]
 		TestingTime=end_time_test-start_time_test           #%   Calculate CPU time (seconds) spent by ELM predicting the whole testing data
 
 		TestingAccuracy = 0

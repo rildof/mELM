@@ -11,7 +11,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 from melm_source import melm
-from melm_lib import processCSV, graph_Train_Test
+from melm_lib import processCSV, graph_Train_Test, MakeTrainTest, graph, process_uci_dataset
 
 
 #========================================================================
@@ -21,7 +21,10 @@ class authoral_melm():
 		self.weights = []
 		self.Accuracies = []
 		self.error_limit = error_limit
+		self.inputOutput = []
 
+	def getInputOutput(self):
+		return self.inputOutput
 	def getLastAccuracy(self):
 		return self.Accuracies[-1]
 	def getWeightsLength(self):
@@ -122,10 +125,12 @@ class authoral_melm():
 				InputWeight = np.reshape(InputWeight, (len(self.weights),1))
 			else:
 				self.weights.append(np.nanmean(P))
-				NumberofHiddenNeurons = 1
 				InputWeight = np.reshape(np.array(np.nanmean(P)), (1,1))
+
+
 				#InputWeight = np.random.uniform(np.amin(np.amin(P)), np.amax(np.amax(P)),
 				#								(NumberofHiddenNeurons, NumberofInputNeurons))
+				#NumberofHiddenNeurons = 1
 				#self.weights.append(InputWeight)
 
 		else:
@@ -172,8 +177,13 @@ class authoral_melm():
 
 		TY = np.transpose(np.dot(np.transpose(tempH_test), OutputWeight))                     #%   Y: the actual output of the training data
 		#TODO make plotly graph implementation
-		if plot: graph_Train_Test([T, Y], [TVT, TY], 'Source mELM')
+		#if plot: graph_Train_Test([T, Y], [TVT, TY], 'Authoral mELM')
 
+		if plot: graph([ [(T,'Saída Desejada'),(Y,'Saída Obtida')],
+						 [(TVT,'Saída Desejada'),(TY,'Saída Obtida')] ],
+					   [ 'Treinamento', 'Teste'] ,
+					   'authoral mELM')
+		self.inputOutput = [T,Y,TVT,TY]
 		end_time_test = process_time()
 		TestingTime=end_time_test-start_time_test           #%   Calculate CPU time (seconds) spent by ELM predicting the whole testing data
 
@@ -224,7 +234,7 @@ class authoral_melm():
 
 		newdata_index = [RMSE_tr.index[i] for i in range(len(RMSE_tr)) if RMSE_tr[i] >= self.error_limit]
 		new_train = pd.concat([T[newdata_index], np.transpose(P[newdata_index])] , axis=1)
-
+		print(RMSE_ts)
 		newdata_index = [RMSE_ts.index[i] for i in range(len(RMSE_ts)) if RMSE_ts[i] >= self.error_limit]
 		new_test = pd.concat([TVT[newdata_index], np.transpose(TVP[newdata_index])], axis=1)
 		return new_train, new_test
@@ -424,9 +434,11 @@ def bytes_or(a, b) :
 #========================================================================
 def setOpts(argv):                         
 	parser = argparse.ArgumentParser()
-	parser.add_argument('-tr', '--TrainingData_File',dest='TrainingData_File',action='store',required=True, 
+	parser.add_argument('-ds', '--Dataset', dest='Dataset', action='store', required=False,
+						help="Filename of whole dataset")
+	parser.add_argument('-tr', '--TrainingData_File',dest='TrainingData_File',action='store',required=False,
 		help="Filename of training data set")
-	parser.add_argument('-ts', '--TestingData_File',dest='TestingData_File',action='store',required=True,
+	parser.add_argument('-ts', '--TestingData_File',dest='TestingData_File',action='store',required=False,
 		help="Filename of testing data set")
 	parser.add_argument('-ty', '--Elm_Type',dest='Elm_Type',action='store',required=True,
 		help="0 for regression; 1 for (both binary and multi-classes) classification")
@@ -440,20 +452,29 @@ def setOpts(argv):
 		help="Verbose output")
 	parser.add_argument('-el', dest='error_limit', action='store', default=5e-5,
 						help="Error Limit")
+	parser.add_argument('-db', dest='func', action='store', default='uci',
+						help="DatabaseSource")
 	arg = parser.parse_args()
-	return(arg.__dict__['TrainingData_File'], arg.__dict__['TestingData_File'], arg.__dict__['Elm_Type'], arg.__dict__['nHiddenNeurons'], 		
-		arg.__dict__['ActivationFunction'], arg.__dict__['nSeed'], arg.__dict__['verbose'], arg.__dict__['error_limit'])
+	return(arg.__dict__['TrainingData_File'], arg.__dict__['TestingData_File'], arg.__dict__['Elm_Type'], arg.__dict__['nHiddenNeurons'],
+		arg.__dict__['ActivationFunction'], arg.__dict__['nSeed'], arg.__dict__['verbose'], arg.__dict__['error_limit'], arg.__dict__['Dataset'],
+	arg.__dict__['func'])
 #========================================================================
 if __name__ == "__main__":
 
 	opts = setOpts(sys.argv[1:])
 	ff = authoral_melm(float(opts[7]))
-	print(opts[7])
+	#print(opts[7])
 	i = 2
-	iteration_limit = 11
-
+	iteration_limit = 10
+	#train_data = processCSV(opts[0])
+	#test_data = processCSV(opts[1])
+	if opts[9] == 'uci': func = 'process_uci_dataset'
+	elif opts[9] == 'wine' : func = 'processCSV'
+	else: func = 'processCSV'
+	train_data, test_data = MakeTrainTest(globals()[func](opts[8]), 0.9)
+	print(train_data,test_data)
 	print('iteration 1')
-	new_train, new_test = ff.main(processCSV(opts[0]), processCSV(opts[1]), opts[2], opts[3], opts[4], opts[5], opts[6],
+	new_train, new_test = ff.main(train_data, test_data, opts[2], opts[3], opts[4], opts[5], opts[6],
 								  False, False)
 	new_train, new_test = new_train.reset_index(drop=True), new_test.reset_index(drop=True)
 	new_train.columns, new_test.columns = range(new_train.columns.size), range(new_test.columns.size)
@@ -469,14 +490,22 @@ if __name__ == "__main__":
 
 
 	print('last iteration, with all hidden neurons combined')
-	new_train, new_test = ff.main(processCSV(opts[0]), processCSV(opts[1]), opts[2], opts[3], opts[4], opts[5], opts[6],
-									  True, True)
+	new_train, new_test = ff.main(train_data, test_data, opts[2], opts[3], opts[4], opts[5], opts[6],
+									  True, False)
 
 	#run source mELM to compare with authoral
+	gg = melm()
+	gg.main(train_data, test_data, opts[2], ff.getWeightsLength(), opts[4], opts[5],opts[6], False)
 
-	#gg = melm()
-	#gg.main(opts[0], opts[1], opts[2], ff.getWeightsLength(), opts[4], opts[5],opts[6], True)
+	x = ff.getInputOutput()
+	y = gg.getInputOutput()
+	graph([ [(x[0],'Desired Output'),(x[1],'Output')],
+			[(y[0],'Desired Output'),(y[1],'Output')] ],
+		  ['authoral mELM', 'state of the art'],'Treinamento')
+	graph([[(x[2], 'Desired Output'), (x[3], 'Output')],
+		   [(y[2], 'Desired Output'), (y[3], 'Output')]],
+		  ['authoral mELM', 'state of the art'], 'Teste')
 	print(ff.getLastAccuracy())
-	#print(gg.getLastAccuracy())
+	print(gg.getLastAccuracy())
 
 #========================================================================
