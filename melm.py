@@ -204,26 +204,26 @@ class authoral_melm():
 
 			label_index_expected = np.argmax(T, axis=0)   # Maxima along the second axis
 			label_index_actual = np.argmax(Y, axis=0)   # Maxima along the second axis
-						
+									
 			for i in range(0, np.size(label_index_expected,0)):
-        			if label_index_actual[i]!=label_index_expected[i]:
-            				MissClassificationRate_Training=MissClassificationRate_Training+1
+				if label_index_actual[i]!=label_index_expected[i]:
+					MissClassificationRate_Training=MissClassificationRate_Training+1
 
 			TrainingAccuracy=1-MissClassificationRate_Training/np.size(label_index_expected,0)
 			TrainingAccuracy = round(TrainingAccuracy, 6) 
 			print('Training Accuracy: ' + str(TrainingAccuracy*100)+' % (',str(np.size(label_index_expected,0)-MissClassificationRate_Training),'/',str(np.size(label_index_expected,0)),') (classification)')
-			
+
 			label_index_expected = np.argmax(TVT, axis=0)   # Maxima along the second axis
 			label_index_actual = np.argmax(TY, axis=0)   # Maxima along the second axis
 
 			for i in range(0, np.size(label_index_expected,0)):
 				if label_index_actual[i]!=label_index_expected[i]:
-            				MissClassificationRate_Testing=MissClassificationRate_Testing+1
+					MissClassificationRate_Testing=MissClassificationRate_Testing+1
 
 			TestingAccuracy=1-MissClassificationRate_Testing/np.size(label_index_expected,0)
 			TestingAccuracy = round(TestingAccuracy, 6) 
 			print('Testing Accuracy: ' + str(TestingAccuracy*100)+' % (',str(np.size(label_index_expected,0)-MissClassificationRate_Testing),'/',str(np.size(label_index_expected,0)),') (classification)')
-			
+
 			print('Training Time: ' + str(round(TrainingTime,6)) + ' seconds')
 			print('Testing Time: ' + str(round(TestingTime,6)) + ' seconds')
 
@@ -234,7 +234,7 @@ class authoral_melm():
 
 		newdata_index = [RMSE_tr.index[i] for i in range(len(RMSE_tr)) if RMSE_tr[i] >= self.error_limit]
 		new_train = pd.concat([T[newdata_index], np.transpose(P[newdata_index])] , axis=1)
-		print(RMSE_ts)
+		#print(RMSE_ts)
 		newdata_index = [RMSE_ts.index[i] for i in range(len(RMSE_ts)) if RMSE_ts[i] >= self.error_limit]
 		new_test = pd.concat([TVT[newdata_index], np.transpose(TVP[newdata_index])], axis=1)
 		return new_train, new_test
@@ -471,6 +471,7 @@ if __name__ == "__main__":
 	if opts[9] == 'uci': func = 'process_uci_dataset'
 	elif opts[9] == 'wine' : func = 'processCSV'
 	else: func = 'processCSV'
+	print(opts[9])
 	train_data, test_data = MakeTrainTest(globals()[func](opts[8]), 0.9)
 	print(train_data,test_data)
 	print('iteration 1')
@@ -505,7 +506,7 @@ if __name__ == "__main__":
 	graph([[(x[2], 'Desired Output'), (x[3], 'Output')],
 		   [(y[2], 'Desired Output'), (y[3], 'Output')]],
 		  ['authoral mELM', 'state of the art'], 'Teste')
-	print(ff.getLastAccuracy())
+	print("Autoral:\n",f"Treino:{ff.getLastAccuracy()[0]} Teste: {ff.getLastAccuracy()[1]}")
 	print(gg.getLastAccuracy())
 
 #========================================================================
