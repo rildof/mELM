@@ -122,12 +122,11 @@ class authoral_melm():
 			if lastRun:
 				NumberofHiddenNeurons = len(self.weights) or 1
 				InputWeight = np.array(self.weights)
-				InputWeight = np.reshape(InputWeight, (len(self.weights),1))
+				#InputWeight = np.reshape(InputWeight, (len(self.weights),1))
 			else:
-				self.weights.append(np.nanmean(P))
-				InputWeight = np.reshape(np.array(np.nanmean(P)), (1,1))
-
-
+				self.weights.append(np.nanmean(P, axis=1))
+				#InputWeight = np.array(np.reshape(np.nanmean(P),(1,1)))
+				InputWeight = np.array([np.nanmean(P, axis=1)])
 				#InputWeight = np.random.uniform(np.amin(np.amin(P)), np.amax(np.amax(P)),
 				#								(NumberofHiddenNeurons, NumberofInputNeurons))
 				#NumberofHiddenNeurons = 1
@@ -140,7 +139,7 @@ class authoral_melm():
 		if lastRun:
 			BiasofHiddenNeurons= np.random.rand(len(self.weights),1);
 		else:
-			BiasofHiddenNeurons = np.random.rand(1,1)
+			BiasofHiddenNeurons = np.random.rand(1,len(InputWeight))
 
 
 		if verbose: print ('Calculate hidden neuron output matrix H')
@@ -231,11 +230,13 @@ class authoral_melm():
 		self.Accuracies.append([TrainingAccuracy, TestingAccuracy])
 
 
-
-		newdata_index = [RMSE_tr.index[i] for i in range(len(RMSE_tr)) if RMSE_tr[i] >= self.error_limit]
+		mean_error_tr = np.mean(RMSE_tr)
+		std_tr = np.std(RMSE_tr)
+		newdata_index = [RMSE_tr.index[i] for i in range(len(RMSE_tr)) if mean_error_tr - std_tr <= RMSE_tr[i] <= mean_error_tr + std_tr]
 		new_train = pd.concat([T[newdata_index], np.transpose(P[newdata_index])] , axis=1)
-		#print(RMSE_ts)
-		newdata_index = [RMSE_ts.index[i] for i in range(len(RMSE_ts)) if RMSE_ts[i] >= self.error_limit]
+		mean_error_ts = np.mean(RMSE_ts)
+		std_ts = np.std(RMSE_ts)
+		newdata_index = [RMSE_ts.index[i] for i in range(len(RMSE_ts)) if mean_error_ts - std_ts <= RMSE_ts[i] <= mean_error_ts + std_ts]
 		new_test = pd.concat([TVT[newdata_index], np.transpose(TVP[newdata_index])], axis=1)
 		return new_train, new_test
 
@@ -337,12 +338,15 @@ def erosion(w1, b1, samples):
 def dilation(w1, b1, samples):
 
 	H = np.zeros((np.size(w1,0), np.size(samples,1)))
-	x = np.zeros(np.size(w1,1))
-
+	if w1.ndim > 1:
+		num_columns = np.size(w1,1)
+	else:
+		num_columns = 1 
+	x = np.zeros(num_columns)
 	for s_index in range(np.size(samples,1)):
 		ss = samples.loc[:,s_index]
 		for i in range(np.size(w1,0)):
-			for j in range(np.size(w1,1)):
+			for j in range(num_columns):
 				#print(ss.loc[j], w1[i][j])
 				#print(type(ss.loc[j]) , type(w1[i][j]))
 				x[j] = min(ss.loc[j], w1[i][j])
@@ -465,7 +469,7 @@ if __name__ == "__main__":
 	ff = authoral_melm(float(opts[7]))
 	#print(opts[7])
 	i = 2
-	iteration_limit = 10
+	iteration_limit = 15
 	#train_data = processCSV(opts[0])
 	#test_data = processCSV(opts[1])
 	if opts[9] == 'uci': func = 'process_uci_dataset'
@@ -473,7 +477,6 @@ if __name__ == "__main__":
 	else: func = 'processCSV'
 	print(opts[9])
 	train_data, test_data = MakeTrainTest(globals()[func](opts[8]), 0.9)
-	print(train_data,test_data)
 	print('iteration 1')
 	new_train, new_test = ff.main(train_data, test_data, opts[2], opts[3], opts[4], opts[5], opts[6],
 								  False, False)
@@ -486,7 +489,9 @@ if __name__ == "__main__":
 		new_train, new_test = new_train.reset_index(drop=True), new_test.reset_index(drop=True)
 		new_train.columns, new_test.columns = range(new_train.columns.size), range(new_test.columns.size)
 		i += 1
-		if i == iteration_limit: print('Iteration has reached its limit'); break
+		if i == iteration_limit: print(f"""--------------\n
+                                 Iteration has reached its limit ({iteration_limit})
+                                 \n--------------"""); break
 		if new_train.size == 0 and new_test.size == 0 : print('Sample size has become too small'); break
 
 
@@ -506,7 +511,7 @@ if __name__ == "__main__":
 	graph([[(x[2], 'Desired Output'), (x[3], 'Output')],
 		   [(y[2], 'Desired Output'), (y[3], 'Output')]],
 		  ['authoral mELM', 'state of the art'], 'Teste')
-	print("Autoral:\n",f"Treino:{ff.getLastAccuracy()[0]} Teste: {ff.getLastAccuracy()[1]}")
-	print(gg.getLastAccuracy())
+	print(f"Autoral:\n Treino:{ff.getLastAccuracy()[0]} ; Teste: {ff.getLastAccuracy()[1]}")
+	print(f"Estado da arte:\n Treino: {gg.getLastAccuracy()[0]} ; Teste: {gg.getLastAccuracy()[1]}")
 
 #========================================================================

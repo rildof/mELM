@@ -16,7 +16,6 @@ def process_uci_dataset(path):
 		d = dataset.read()
 		d = d.split("\n")
 		d = [i.split(':') for i in d]
-		print(d)
 		x = []
 		for row in d:
 			y = []
@@ -28,7 +27,6 @@ def process_uci_dataset(path):
 		df = pd.DataFrame(x).T
 		df = df.drop(df.columns[[-1]], axis=1)
 		df = df.T
-		print(df)
 		return df.astype(np.float64)
 def processCSV_1(Data_File):
 	data = pd.read_csv(Data_File, sep=' ', decimal=".", header=None)
@@ -41,7 +39,6 @@ def processCSV_1(Data_File):
 def processCSV(Data_File):
 	data = pd.read_csv(Data_File, sep=';', decimal=".", header=None)
 	data = data.drop(0, axis=0).reset_index(drop=True).astype(np.float64)
-	print(data)
 	for ii in reversed(range(np.size(data, 1))):
 		if np.isnan(data.loc[:, ii]).all():
 			data.drop(data.columns[ii], axis=1, inplace=True)
@@ -58,7 +55,6 @@ def MakeTrainTest(dSet, percentTraining):
     splitPoint = int(len(dSet)*percentTraining)
     train_data, test_data = dSet[:splitPoint], dSet[splitPoint:]
     test_data = test_data.reset_index(drop=True)
-    ##print(train_data, test_data)
     return [train_data, test_data]
 
 
