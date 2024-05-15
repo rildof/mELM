@@ -17,10 +17,9 @@ from melm_lib import processCSV, graph_Train_Test, MakeTrainTest, graph, process
 #========================================================================
 class authoral_melm():
 
-	def __init__(self, error_limit):
+	def __init__(self):
 		self.weights = []
 		self.Accuracies = []
-		self.error_limit = error_limit
 		self.inputOutput = []
 
 	def getInputOutput(self):
@@ -30,8 +29,6 @@ class authoral_melm():
 	def getWeightsLength(self):
 		return len(self.weights)
 
-	def changeErrorLimit(self, error_limit):
-		self.error_limit = error_limit
 	def main(self,train_data, test_data,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, lastRun, plot):
 				
 		if ActivationFunction is None:
@@ -454,29 +451,27 @@ def setOpts(argv):
 		help="random number generator seed:")
 	parser.add_argument('-v', dest='verbose', action='store_true',default=False,
 		help="Verbose output")
-	parser.add_argument('-el', dest='error_limit', action='store', default=5e-5,
-						help="Error Limit")
 	parser.add_argument('-db', dest='func', action='store', default='uci',
 						help="DatabaseSource")
 	arg = parser.parse_args()
 	return(arg.__dict__['TrainingData_File'], arg.__dict__['TestingData_File'], arg.__dict__['Elm_Type'], arg.__dict__['nHiddenNeurons'],
-		arg.__dict__['ActivationFunction'], arg.__dict__['nSeed'], arg.__dict__['verbose'], arg.__dict__['error_limit'], arg.__dict__['Dataset'],
+		arg.__dict__['ActivationFunction'], arg.__dict__['nSeed'], arg.__dict__['verbose'], arg.__dict__['Dataset'],
 	arg.__dict__['func'])
 #========================================================================
 if __name__ == "__main__":
 
 	opts = setOpts(sys.argv[1:])
-	ff = authoral_melm(float(opts[7]))
+	ff = authoral_melm()
 	#print(opts[7])
 	i = 2
 	iteration_limit = 15
 	#train_data = processCSV(opts[0])
 	#test_data = processCSV(opts[1])
-	if opts[9] == 'uci': func = 'process_uci_dataset'
-	elif opts[9] == 'wine' : func = 'processCSV'
+	if opts[8] == 'uci': func = 'process_uci_dataset'
+	elif opts[8] == 'wine' : func = 'processCSV'
 	else: func = 'processCSV'
-	print(opts[9])
-	train_data, test_data = MakeTrainTest(globals()[func](opts[8]), 0.9)
+	print(opts[8])
+	train_data, test_data = MakeTrainTest(globals()[func](opts[7]), 0.9)
 	print('iteration 1')
 	new_train, new_test = ff.main(train_data, test_data, opts[2], opts[3], opts[4], opts[5], opts[6],
 								  False, False)
