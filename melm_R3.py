@@ -129,6 +129,7 @@ class melm():
                 InputWeight = np.row_stack((classCalc, counterClassCalc))
                 InputWeight = np.delete(InputWeight, 0, 1)
                 InputWeight = np.row_stack((InputWeight, InputWeight, InputWeight))
+                
                 #print(InputWeight)
 
                 BiasofHiddenNeurons = np.nan_to_num(
@@ -146,6 +147,11 @@ class melm():
             #InputWeight = InputWeight + np.array(NeuronStack)
             InputWeight = InputWeight
 
+        #TODO salvar inputweight e TVT da primeira iteração para a base de dados do matlab
+        
+        print(InputWeight)
+        print(TVT)
+        breakpoint()
         if verbose: print ('Calculate hidden neuron output matrix H')
         #%%%%%%%%%%% Calculate hidden neuron output matrix H
         #print('ActivationFunction: ', ActivationFunction, 'InputWeight: ', InputWeight, 'BiasofHiddenNeurons: ', BiasofHiddenNeurons, 'P: ', P, sep='\n')
