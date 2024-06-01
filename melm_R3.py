@@ -126,7 +126,7 @@ class melm():
                 #print('classStd',classStd, 'counterClassStd',counterClassStd ,sep='\n')
                 #print(classCalc, counterClassCalc)
                 InputWeight = np.row_stack((classCalc, counterClassCalc))
-                InputWeight = np.delete(InputWeight, 0, 1)
+                InputWeight = np.delete(InputWeight, 0, 1) #Apagando primeira coluna pois ela é o atributo que determina a classe para o algoritmo
                 InputWeight = np.row_stack((InputWeight, InputWeight, InputWeight))
                 
                 #print(InputWeight)
@@ -147,7 +147,6 @@ class melm():
             InputWeight = InputWeight
 
         #TODO salvar inputweight e TVT da primeira iteração para a base de dados do matlab
-        
         if verbose: print ('Calculate hidden neuron output matrix H')
         #%%%%%%%%%%% Calculate hidden neuron output matrix H
         #print('ActivationFunction: ', ActivationFunction, 'InputWeight: ', InputWeight, 'BiasofHiddenNeurons: ', BiasofHiddenNeurons, 'P: ', P, sep='\n')
@@ -163,7 +162,6 @@ class melm():
         if verbose: print ('Calculate the training accuracy')
         #%%%%%%%%%%% Calculate the training accuracy
         Y = np.transpose(np.dot(np.transpose(H), OutputWeight))                     #%   Y: the actual output of the training data
-
         TrainingAccuracy = 0
         if Elm_Type == self.REGRESSION:
             if verbose: print ('Calculate training accuracy (RMSE) for regression case')
@@ -231,7 +229,7 @@ class melm():
             zipped = ['InputWeight:',InputWeight,'OutputWeight', OutputWeight,'Saída',Y]
             file = open("log.txt", "a")
             #print(zipped)
-            file.write('InputWeight\n')
+            """file.write('InputWeight\n')
             np.savetxt(file, InputWeight, fmt='%s')
             np.savetxt(file, InputWeight.shape, fmt='%s')
             file.write('H:\n')
@@ -242,7 +240,11 @@ class melm():
             np.savetxt(file, OutputWeight.shape, fmt='%s')
             file.write('Saída:\n')
             np.savetxt(file, Y, fmt='%s')
-            np.savetxt(file, Y.shape, fmt='%s')
+            np.savetxt(file, Y.shape, fmt='%s')"""
+            file.write('Matriz H\n')
+            np.savetxt(file, H, fmt='%s')
+            file.write('Matriz Y')
+            np.savetxt(file, Y, fmt='%s')
             return [dSet2, [TrainingAccuracy*100, TestingAccuracy*100], InputWeight, BiasofHiddenNeurons]
 #========================================================================
 def MakeTrainTest(dSet, percentTraining):
@@ -329,7 +331,7 @@ def ProcessCSV_2(Benign_address , Malign_address , pvalue=1):
     return dSet.reset_index(drop=True)
 
 
-def ProcessCSV_matlab(Benign_address , Malign_address , pvalue=0.05):
+def ProcessCSV_matlab(Benign_address , Malign_address):
     #This dataset is divided into malign and benign, so we need to merge them in a random way into a training array and a testing array
     #   @ - load malign and benign data
     malign = pd.read_csv(Malign_address, sep=';', decimal=".", header=None, low_memory= False)
@@ -339,14 +341,11 @@ def ProcessCSV_matlab(Benign_address , Malign_address , pvalue=0.05):
     benign = pd.read_csv(Benign_address, sep=';', decimal=".", header=None, low_memory = False)
     benign = benign.astype('float64') # Convert string to float64
     dSet = pd.concat([malign, benign], ignore_index=True)
-    breakpoint()
     for i in range(len(dSet[0])):
         if dSet[0][i] == 1:
             dSet[0][i] = 0
         if dSet[0][i] == 2:
             dSet[0][i] = 1
-    
-    breakpoint()
     return dSet.reset_index(drop=True)
 
 def euclidianDistance(x1, x2):
@@ -571,7 +570,7 @@ if __name__ == "__main__":
     opts = setOpts(sys.argv[1:])
     ff = melm()
     if 'matlab' in opts[0]:
-        [TrainingData, TestingData] = MakeTrainTest(ProcessCSV_matlab(opts[0],opts[1]), 0.7)
+        [TrainingData, TestingData] = MakeTrainTest(ProcessCSV_matlab(opts[0],opts[1]), 0.4)
     else:
         [TrainingData, TestingData] = MakeTrainTest(ProcessCSV(opts[0],opts[1]) , 0.7)
     OriginalTrainingData, OriginalTestingData = TrainingData.copy(), TestingData.copy()
