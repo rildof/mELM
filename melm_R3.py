@@ -47,7 +47,6 @@ class melm():
         classValues = (classValues.reset_index(drop=True))
         counterClassValues = train_data.loc[train_data[0] == 0.000000]
         counterClassValues = (counterClassValues.reset_index(drop=True))
-        print(classValues, counterClassValues)
 
         if verbose: print ('Load testing dataset')
         #%%%%%%%%%%% Load testing dataset
@@ -149,9 +148,6 @@ class melm():
 
         #TODO salvar inputweight e TVT da primeira iteração para a base de dados do matlab
         
-        print(InputWeight)
-        print(TVT)
-        breakpoint()
         if verbose: print ('Calculate hidden neuron output matrix H')
         #%%%%%%%%%%% Calculate hidden neuron output matrix H
         #print('ActivationFunction: ', ActivationFunction, 'InputWeight: ', InputWeight, 'BiasofHiddenNeurons: ', BiasofHiddenNeurons, 'P: ', P, sep='\n')
@@ -330,6 +326,27 @@ def ProcessCSV_2(Benign_address , Malign_address , pvalue=1):
 
     #print(dSet)
     #dSet = dSet[list(indices.index)]
+    return dSet.reset_index(drop=True)
+
+
+def ProcessCSV_matlab(Benign_address , Malign_address , pvalue=0.05):
+    #This dataset is divided into malign and benign, so we need to merge them in a random way into a training array and a testing array
+    #   @ - load malign and benign data
+    malign = pd.read_csv(Malign_address, sep=';', decimal=".", header=None, low_memory= False)
+        #This part is subjective to each dataset and should be changed if the dataset is changed
+    malign = malign.astype('float64')  # Convert string to float64
+    
+    benign = pd.read_csv(Benign_address, sep=';', decimal=".", header=None, low_memory = False)
+    benign = benign.astype('float64') # Convert string to float64
+    dSet = pd.concat([malign, benign], ignore_index=True)
+    breakpoint()
+    for i in range(len(dSet[0])):
+        if dSet[0][i] == 1:
+            dSet[0][i] = 0
+        if dSet[0][i] == 2:
+            dSet[0][i] = 1
+    
+    breakpoint()
     return dSet.reset_index(drop=True)
 
 def euclidianDistance(x1, x2):
@@ -553,7 +570,10 @@ if __name__ == "__main__":
     Biases = np.array([])
     opts = setOpts(sys.argv[1:])
     ff = melm()
-    [TrainingData, TestingData] = MakeTrainTest(ProcessCSV(opts[0],opts[1]) , 0.7)
+    if 'matlab' in opts[0]:
+        [TrainingData, TestingData] = MakeTrainTest(ProcessCSV_matlab(opts[0],opts[1]), 0.7)
+    else:
+        [TrainingData, TestingData] = MakeTrainTest(ProcessCSV(opts[0],opts[1]) , 0.7)
     OriginalTrainingData, OriginalTestingData = TrainingData.copy(), TestingData.copy()
     for i in range(999):
         print("Iteration: ", i)
