@@ -113,30 +113,28 @@ class melm():
         if (ActivationFunction == 'erosion') or (ActivationFunction == 'dilation') or (ActivationFunction == 'fuzzy-erosion') or (ActivationFunction == 'fuzzy_erosion') or (ActivationFunction == 'fuzzy-dilation') or (ActivationFunction == 'fuzzy_dilation') or (ActivationFunction == 'bitwise-erosion') or (ActivationFunction == 'bitwise_erosion') or (ActivationFunction == 'bitwise-dilation') or (ActivationFunction == 'bitwise_dilation') :
             #InputWeight = np.random.uniform(np.amin(np.amin(P)), np.amax(np.amax(P)), (NumberofHiddenNeurons,NumberofInputNeurons))
             if lastRun == False:
-                #print('classValues',classValues, 'counterClassValues',counterClassValues ,sep='\n')
-                classCalc = np.nanmean(classValues, axis = 0)                                               #Average
-                counterClassCalc = np.nanmean(counterClassValues, axis = 0)                                 #Average
+                #classCalc = np.nanmean(classValues, axis = 0)                                               #Average
+                #counterClassCalc = np.nanmean(counterClassValues, axis = 0)                                 #Average
                 #classCalc = np.nanmedian(classValues, axis = 0)                                            #Median
                 #counterClassCalc = np.nanmedian(counterClassValues, axis = 0)                              #Median
-                #classCalc = stats.mode(classValues, axis = 0 , keepdims= True , nan_policy= 'omit')[0]                      #Mode
-                #counterClassCalc = stats.mode(counterClassValues, axis = 0 ,  keepdims= True ,  nan_policy= 'omit')[0]      #Mode
-                #print('classCalc',classCalc, 'counterClassCalc',counterClassCalc ,sep='\n')
+                classCalc = stats.mode(classValues, axis = 0 , keepdims= True , nan_policy= 'omit')[0]                      #Mode
+                counterClassCalc = stats.mode(counterClassValues, axis = 0 ,  keepdims= True ,  nan_policy= 'omit')[0]      #Mode
+
                 classStd = np.nanstd(classCalc)                                                 #C Standard Deviation
                 counterClassStd = np.nanstd(counterClassCalc)                                   #C.C Standard Deviation
-                #print('classStd',classStd, 'counterClassStd',counterClassStd ,sep='\n')
-                #print(classCalc, counterClassCalc)
+
                 InputWeight = np.row_stack((classCalc, counterClassCalc))
                 InputWeight = np.delete(InputWeight, 0, 1) #Apagando primeira coluna pois ela é o atributo que determina a classe para o algoritmo
                 InputWeight = np.row_stack((InputWeight, InputWeight, InputWeight))
-                
-                #print(InputWeight)
+
+
 
                 BiasofHiddenNeurons = np.nan_to_num(
                     np.matrix([[0], [0], [classStd], [counterClassStd], [-classStd], [-counterClassStd]]), nan=0)
             else:
                 InputWeight = NeuronStack
                 BiasofHiddenNeurons = np.nan_to_num(BiasArray, nan=0)
-                #print('NeuronStack: ', NeuronStack)
+
         else:
             InputWeight=np.random.rand(NumberofHiddenNeurons,NumberofInputNeurons)*2-1;
 
@@ -149,7 +147,6 @@ class melm():
         #TODO salvar inputweight e TVT da primeira iteração para a base de dados do matlab
         if verbose: print ('Calculate hidden neuron output matrix H')
         #%%%%%%%%%%% Calculate hidden neuron output matrix H
-        #print('ActivationFunction: ', ActivationFunction, 'InputWeight: ', InputWeight, 'BiasofHiddenNeurons: ', BiasofHiddenNeurons, 'P: ', P, sep='\n')
         H = switchActivationFunction(ActivationFunction,InputWeight,BiasofHiddenNeurons,P)
 
         if verbose: print ('Calculate output weights OutputWeight (beta_i)')
@@ -226,26 +223,30 @@ class melm():
 
             print('Training Time: ' + str(round(TrainingTime,6)) + ' seconds')
             print('Testing Time: ' + str(round(TestingTime,6)) + ' seconds')
-            zipped = ['InputWeight:',InputWeight,'OutputWeight', OutputWeight,'Saída',Y]
-            file = open("log.txt", "a")
-            #print(zipped)
-            """file.write('InputWeight\n')
-            np.savetxt(file, InputWeight, fmt='%s')
-            np.savetxt(file, InputWeight.shape, fmt='%s')
-            file.write('H:\n')
-            np.savetxt(file, H.shape, fmt='%s')
-            np.savetxt(file, H, fmt='%s')
-            file.write('OutputWeight\n')
-            np.savetxt(file, OutputWeight, fmt='%s')
-            np.savetxt(file, OutputWeight.shape, fmt='%s')
-            file.write('Saída:\n')
-            np.savetxt(file, Y, fmt='%s')
-            np.savetxt(file, Y.shape, fmt='%s')"""
-            file.write('Matriz H\n')
-            np.savetxt(file, H, fmt='%s')
-            file.write('Matriz Y')
-            np.savetxt(file, Y, fmt='%s')
+
+            self.save_matrix_snippet(InputWeight, 'InputWeight')
+            self.save_matrix_snippet(H, 'H', 10,10)
+            self.save_matrix_snippet(Y, 'Y', 10,10)
             return [dSet2, [TrainingAccuracy*100, TestingAccuracy*100], InputWeight, BiasofHiddenNeurons]
+
+    def save_matrix_snippet(self, data, dataname, number_of_lines=0, number_of_columns=0):
+        #method that saves only 10 first lines of a matrix  
+        data_to_print = []
+        if number_of_lines == 0 and number_of_columns == 0: data_to_print = data
+        else:
+            for index, line in enumerate(data):
+                data_to_print.append(line[:number_of_columns])
+                if index == number_of_lines:
+                    break
+            data = np.array(data_to_print)
+        
+        file = open("log.txt", "a")
+        file.write(dataname + '\n')
+        file.write('------------------------------------\n')
+        np.savetxt(file, data, fmt='%s')
+        file.write('------------------------------------\n\n')
+        file.close()
+
 #========================================================================
 def MakeTrainTest(dSet, percentTraining):
         #shuffle dataset
@@ -253,7 +254,6 @@ def MakeTrainTest(dSet, percentTraining):
     splitPoint = int(len(dSet)*percentTraining)
     train_data, test_data = dSet[:splitPoint], dSet[splitPoint:]
     test_data = test_data.reset_index(drop=True)
-    ##print(train_data, test_data)
     return [train_data, test_data]
 
 def ProcessCSV(Benign_address , Malign_address , pvalue=0.05):
@@ -326,7 +326,6 @@ def ProcessCSV_2(Benign_address , Malign_address , pvalue=1):
     #condicao = corr_df['p-value'] < pvalue
     #indices = corr_df[condicao]
 
-    #print(dSet)
     #dSet = dSet[list(indices.index)]
     return dSet.reset_index(drop=True)
 
@@ -341,11 +340,7 @@ def ProcessCSV_matlab(Benign_address , Malign_address):
     benign = pd.read_csv(Benign_address, sep=';', decimal=".", header=None, low_memory = False)
     benign = benign.astype('float64') # Convert string to float64
     dSet = pd.concat([malign, benign], ignore_index=True)
-    for i in range(len(dSet[0])):
-        if dSet[0][i] == 1:
-            dSet[0][i] = 0
-        if dSet[0][i] == 2:
-            dSet[0][i] = 1
+
     return dSet.reset_index(drop=True)
 
 def euclidianDistance(x1, x2):
@@ -584,18 +579,13 @@ if __name__ == "__main__":
             Weights = Dataset[i][2]
             Biases = Dataset[i][3]
         else:
-            #Dataset.append(ff.main(opts[0], opts[1], opts[2], 2, opts[4], opts[5], opts[6],Values[i-1], []))
             [TrainingData, TestingData] = MakeTrainTest(Values[i-1] , 0.7)
             Dataset.append(ff.main(TrainingData, TestingData, opts[2], 6, opts[4], opts[5], opts[6], Weights[i-1], [] , False ))
             Values.append(Dataset[i][0])
             Accuracies.append(Dataset[i][1])
-            #Weights.append(Dataset[i][2])
             Weights = np.row_stack((Weights,Dataset[i][2]))
             Biases = np.row_stack((Biases,Dataset[i][3]))
             if (Dataset[i][1])[0] == 100.0  and (Dataset[i][1])[1] == 100.0 or i == 4 :
-                #print('Acurácia chegou em 100% no treinamento na iteração: ', i)
-                #print(Weights)
-                #print(Weights[~np.isnan(Weights).any(axis=1)])
                 Dataset.append(ff.main(OriginalTrainingData.astype('float64'), OriginalTestingData.astype('float64'), opts[2], 6*(i+1), opts[4], opts[5], opts[6], np.nan_to_num(Weights, nan = 0), Biases, True))
                 Values.append(Dataset[i][0])
                 Accuracies.append(Dataset[i][1])

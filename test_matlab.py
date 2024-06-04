@@ -9,16 +9,14 @@ import numpy as np
 data = loadmat('matlab/entrada_temp.mat')
 
 
-benign = [d for d in data['entrada_temp'] if d[-1] == 1]
-malign = [d for d in data['entrada_temp'] if d[-1] == 2]
-
+benign = np.array([d for d in data['entrada_temp'] if d[-1] == 1])
+malign = np.array([d for d in data['entrada_temp'] if d[-1] == 2])
+breakpoint()
 for d in benign:
-    d[0] = 0
+    d[-1] = 0
 for d in malign:
-    d[0] = 1
+    d[-1] = 1
 #only move last column to first and keep all the others the same
-benign = np.array(benign)
-malign = np.array(malign)
 benign = np.concatenate((benign[:,[-1]], benign[:,:-1]), axis=1)
 malign = np.concatenate((malign[:,[-1]], malign[:,:-1]), axis=1)
 
