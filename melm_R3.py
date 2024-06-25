@@ -2,19 +2,23 @@
 from random import *
 from time import process_time
 from scipy import stats
-
-from test import remove_uniform_columns, get_duplicate_rows
+from melm_lib import *
+from collections import Counter
 
 import math
 import struct
-import sys,string
+import sys
 import argparse
 import numpy as np
 import pandas as pd
 np.set_printoptions(threshold=np.inf)
 # ========================================================================
 class melm():
-    def main(self,train_data, test_data,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, NeuronStack, BiasArray, lastRun):
+    def __init__(self):
+        self.weights = []
+        self.biases = []
+        
+    def main(self,train_data, test_data,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, lastRun):
 
         if ActivationFunction is None:
             ActivationFunction = 'linear'
@@ -113,13 +117,43 @@ class melm():
         if (ActivationFunction == 'erosion') or (ActivationFunction == 'dilation') or (ActivationFunction == 'fuzzy-erosion') or (ActivationFunction == 'fuzzy_erosion') or (ActivationFunction == 'fuzzy-dilation') or (ActivationFunction == 'fuzzy_dilation') or (ActivationFunction == 'bitwise-erosion') or (ActivationFunction == 'bitwise_erosion') or (ActivationFunction == 'bitwise-dilation') or (ActivationFunction == 'bitwise_dilation') :
             #InputWeight = np.random.uniform(np.amin(np.amin(P)), np.amax(np.amax(P)), (NumberofHiddenNeurons,NumberofInputNeurons))
             if lastRun == False:
+                calcMode = 'mode'
                 #classCalc = np.nanmean(classValues, axis = 0)                                               #Average
                 #counterClassCalc = np.nanmean(counterClassValues, axis = 0)                                 #Average
                 #classCalc = np.nanmedian(classValues, axis = 0)                                            #Median
                 #counterClassCalc = np.nanmedian(counterClassValues, axis = 0)                              #Median
-                classCalc = stats.mode(classValues, axis = 0 , keepdims= True , nan_policy= 'omit')[0]                      #Mode
-                counterClassCalc = stats.mode(counterClassValues, axis = 0 ,  keepdims= True ,  nan_policy= 'omit')[0]      #Mode
+                
+                if calcMode == 'mode':
+                    #Class
+                    if not classValues.empty:
+                        classMode = get_modes(classValues, 2)  
+                        classCalc = [mode[0] for mode in classMode]  
+                    else:
+                        classMode = len(classValues.columns) * [np.nan]
+                        classCalc = len(classValues.columns) * [np.nan]   
+                        
+                    #counterClass
+                    if not counterClassValues.empty:
+                        counterClassMode = get_modes(counterClassValues, 2)
+                        counterClassCalc = [mode[0] for mode in counterClassMode]
+                    else:
+                        counterClassMode = len(counterClassValues.columns) * [np.nan]
+                        counterClassCalc = len(counterClassValues.columns) * [np.nan]
+                    
+                    #substituting to the second mode if the first is the same as previous iteration
+                    if not np.array_equal(self.weights, []):
+                        #Class
+                        if not list(set(classCalc)) == [np.nan]:
+                            for index, c in enumerate(self.weights[-6]):
+                                if classCalc[index] == c:
+                                    classCalc[index] = classMode[index][1]
+                        #counterClass
+                        if not list(set(counterClassCalc)) == [np.nan]:
+                            for index, c in enumerate(self.weights[-5]):
+                                if classCalc[index] == c:
+                                    classCalc[index] = counterClassMode[index][1]
 
+                    
                 classStd = np.nanstd(classCalc)                                                 #C Standard Deviation
                 counterClassStd = np.nanstd(counterClassCalc)                                   #C.C Standard Deviation
 
@@ -132,17 +166,13 @@ class melm():
                 BiasofHiddenNeurons = np.nan_to_num(
                     np.matrix([[0], [0], [classStd], [counterClassStd], [-classStd], [-counterClassStd]]), nan=0)
             else:
-                InputWeight = NeuronStack
-                BiasofHiddenNeurons = np.nan_to_num(BiasArray, nan=0)
+                InputWeight = self.weights
+                BiasofHiddenNeurons = self.biases
 
         else:
             InputWeight=np.random.rand(NumberofHiddenNeurons,NumberofInputNeurons)*2-1;
 
-        if np.array_equal(NeuronStack , []) :
-            InputWeight = InputWeight
-        else:
-            #InputWeight = InputWeight + np.array(NeuronStack)
-            InputWeight = InputWeight
+
 
         #TODO salvar inputweight e TVT da primeira iteração para a base de dados do matlab
         if verbose: print ('Calculate hidden neuron output matrix H')
@@ -224,10 +254,20 @@ class melm():
             print('Training Time: ' + str(round(TrainingTime,6)) + ' seconds')
             print('Testing Time: ' + str(round(TestingTime,6)) + ' seconds')
 
+            self.clear_log()
             self.save_matrix_snippet(InputWeight, 'InputWeight')
             self.save_matrix_snippet(H, 'H', 10,10)
             self.save_matrix_snippet(Y, 'Y', 10,10)
-            return [dSet2, [TrainingAccuracy*100, TestingAccuracy*100], InputWeight, BiasofHiddenNeurons]
+            
+            if lastRun == False:
+                if np.array_equal(self.weights, []): 
+                    self.weights = InputWeight
+                    self.biases = BiasofHiddenNeurons
+                else: 
+                    self.weights = np.row_stack((self.weights, InputWeight))
+                    self.biases = np.row_stack((self.biases, BiasofHiddenNeurons))
+            
+            return [dSet2, [TrainingAccuracy*100, TestingAccuracy*100]]
 
     def save_matrix_snippet(self, data, dataname, number_of_lines=0, number_of_columns=0):
         #method that saves only 10 first lines of a matrix  
@@ -247,105 +287,13 @@ class melm():
         file.write('------------------------------------\n\n')
         file.close()
 
-#========================================================================
-def MakeTrainTest(dSet, percentTraining):
-        #shuffle dataset
-    dSet = dSet.sample(frac=1, random_state=349).reset_index(drop=True)
-    splitPoint = int(len(dSet)*percentTraining)
-    train_data, test_data = dSet[:splitPoint], dSet[splitPoint:]
-    test_data = test_data.reset_index(drop=True)
-    return [train_data, test_data]
+    def clear_log(self):
+        file = open("log.txt", "w")
+        file.write('')
+        file.close()
 
-def ProcessCSV(Benign_address , Malign_address , pvalue=0.05):
-    #This dataset is divided into malign and benign, so we need to merge them in a random way into a training array and a testing array
-    #   @ - load malign and benign data
-    malign = pd.read_csv(Malign_address, sep=';', decimal=".", header=None, low_memory= False)
-        #This part is subjective to each dataset and should be changed if the dataset is changed
-    malign = malign.drop([malign.columns[0], malign.columns[-1]], axis=1)
-    malign = malign.drop([0])
-    malign = malign.astype('float64')  # Convert string to int64
-    #malign = malign.replace(0,-0.1)
-    malign.insert(0,0, np.ones(len(malign))) #add a column of ones to the class dataset
-
-    benign = pd.read_csv(Benign_address, sep=';', decimal=".", header=None, low_memory = False)
-        #This part is subjective to each dataset and should be changed if the dataset is changed
-    benign = benign.drop([benign.columns[0], benign.columns[-1]], axis=1) # remove first and last columns which is text and NaN respectively
-    benign = benign.drop([0]) #remove first row which is only text
-    benign = benign.astype('float64') # Convert string to int64
-    #benign = benign.replace(0, -0.1)
-    benign.insert(0,0, np.zeros(len(benign))) #add a column of zeros to the counter-class dataset
-    #   @ - merge the two datasets, making a training dataset and a testing dataset
-    dSet = pd.concat([malign, benign], ignore_index=True)
-    dSet = remove_uniform_columns(dSet)
-
-    corr_df = pd.DataFrame(columns=['r', 'p-value'])
-
-    for col in dSet:  # Use this to loop through the DataFrame
-        if pd.api.types.is_numeric_dtype(dSet[col]):  # Only calculate r, p-value for the numeric columns
-            r, p = stats.pearsonr(dSet[0], dSet[
-                col])  # .pearsonr() returns two values in a list, store them individually using this format
-            # r and p-values are calculated in comparison with what it is(benign or malign)
-            corr_df.loc[col] = [round(r, 3), round(p, 3)]  # Add the r & p for this col into the corr_df
-
-    condicao = corr_df['p-value'] < pvalue
-    indices = corr_df[condicao]
-
-    dSet = dSet[list(indices.index)]
-    return dSet.reset_index(drop=True)
-
-def ProcessCSV_2(Benign_address , Malign_address , pvalue=1):
-    #This dataset is divided into malign and benign, so we need to merge them in a random way into a training array and a testing array
-    #   @ - load malign and benign data
-    malign = pd.read_csv(Malign_address, sep=',', decimal=".", header=None, low_memory= False)
-        #This part is subjective to each dataset and should be changed if the dataset is changed
-    malign = malign.drop([malign.columns[-1]], axis=1)
-    malign = malign.drop([0])
-    malign = malign.astype('float64')  # Convert string to int64
-    #malign = malign.replace(0,-0.1)
-    malign.insert(0,0, np.ones(len(malign)) , allow_duplicates = True) #add a column of ones to the class dataset
-    benign = pd.read_csv(Benign_address, sep=',', decimal=".", header=None, low_memory = False)
-        #This part is subjective to each dataset and should be changed if the dataset is changed
-    benign = benign.drop([benign.columns[-1]], axis=1) # remove first and last columns which is text and NaN respectively
-    benign = benign.drop([0]) #remove first row which is only text
-    benign = benign.astype('float64') # Convert string to int64
-    #benign = benign.replace(0, -0.1)
-    benign.insert(0,0, np.zeros(len(benign)), allow_duplicates= True) #add a column of zeros to the counter-class dataset
-    #   @ - merge the two datasets, making a training dataset and a testing dataset
-    dSet = pd.concat([malign, benign], ignore_index=True)
-    dSet = remove_uniform_columns(dSet)
-
-    #corr_df = pd.DataFrame(columns=['r', 'p-value'])
-
-    #for col in dSet:  # Use this to loop through the DataFrame
-    #    if pd.api.types.is_numeric_dtype(dSet[col]):  # Only calculate r, p-value for the numeric columns
-    #        r, p = stats.pearsonr(dSet[0], dSet[
-    #            col])  # .pearsonr() returns two values in a list, store them individually using this format
-            # r and p-values are calculated in comparison with what it is(benign or malign)
-    #        corr_df.loc[col] = [round(r, 3), round(p, 3)]  # Add the r & p for this col into the corr_df
-
-    #condicao = corr_df['p-value'] < pvalue
-    #indices = corr_df[condicao]
-
-    #dSet = dSet[list(indices.index)]
-    return dSet.reset_index(drop=True)
-
-
-def ProcessCSV_matlab(Benign_address , Malign_address):
-    #This dataset is divided into malign and benign, so we need to merge them in a random way into a training array and a testing array
-    #   @ - load malign and benign data
-    malign = pd.read_csv(Malign_address, sep=';', decimal=".", header=None, low_memory= False)
-        #This part is subjective to each dataset and should be changed if the dataset is changed
-    malign = malign.astype('float64')  # Convert string to float64
-    
-    benign = pd.read_csv(Benign_address, sep=';', decimal=".", header=None, low_memory = False)
-    benign = benign.astype('float64') # Convert string to float64
-    dSet = pd.concat([malign, benign], ignore_index=True)
-
-    return dSet.reset_index(drop=True)
-
-def euclidianDistance(x1, x2):
-    return np.sqrt(np.sum((x1-x2)**2))
-
+    def get_weights(self):
+        return self.weights
 #========================================================================
 def switchActivationFunction(ActivationFunction,InputWeight,BiasofHiddenNeurons,P):
 
@@ -560,8 +508,6 @@ if __name__ == "__main__":
     Values = []
     Dataset = []
     Accuracies = []
-    Weights = np.array([])
-    Biases = np.array([])
     opts = setOpts(sys.argv[1:])
     ff = melm()
     if 'matlab' in opts[0]:
@@ -573,31 +519,26 @@ if __name__ == "__main__":
         print("Iteration: ", i)
         if i == 0:
             #Dataset.append(ff.main(opts[0], opts[1], opts[2], 2, opts[4], opts[5], opts[6],pd.DataFrame(), []))
-            Dataset.append(ff.main(TrainingData.astype('float64'), TestingData.astype('float64'), opts[2], 6, opts[4], opts[5], opts[6], [], [] , False))
+            Dataset.append(ff.main(TrainingData.astype('float64'), TestingData.astype('float64'), opts[2], 6, opts[4], opts[5], opts[6], False))
             Values.append(Dataset[i][0])
             Accuracies.append(Dataset[i][1])
-            Weights = Dataset[i][2]
-            Biases = Dataset[i][3]
         else:
             [TrainingData, TestingData] = MakeTrainTest(Values[i-1] , 0.7)
-            Dataset.append(ff.main(TrainingData, TestingData, opts[2], 6, opts[4], opts[5], opts[6], Weights[i-1], [] , False ))
+            Dataset.append(ff.main(TrainingData, TestingData, opts[2], 6, opts[4], opts[5], opts[6], False ))
             Values.append(Dataset[i][0])
             Accuracies.append(Dataset[i][1])
-            Weights = np.row_stack((Weights,Dataset[i][2]))
-            Biases = np.row_stack((Biases,Dataset[i][3]))
             if (Dataset[i][1])[0] == 100.0  and (Dataset[i][1])[1] == 100.0 or i == 4 :
-                Dataset.append(ff.main(OriginalTrainingData.astype('float64'), OriginalTestingData.astype('float64'), opts[2], 6*(i+1), opts[4], opts[5], opts[6], np.nan_to_num(Weights, nan = 0), Biases, True))
+                Dataset.append(ff.main(OriginalTrainingData.astype('float64'), OriginalTestingData.astype('float64'), opts[2], 6*(i+1), opts[4], opts[5], opts[6],  True))
                 Values.append(Dataset[i][0])
                 Accuracies.append(Dataset[i][1])
 
                 dup = get_duplicate_rows(pd.DataFrame(Dataset[0][i]), pd.DataFrame(Dataset[0][0]))
                 break
 
-    print('Pesos: ', Weights)
 
     print('Acurácias:', Accuracies)
-
-    print("Erros da ultima iteração que são iguais com o da primeira")
-    print(dup)
+    print(ff.get_weights())
+    #print("Erros da ultima iteração que são iguais com o da primeira")
+    #print(dup)
 #========================================================================
 
