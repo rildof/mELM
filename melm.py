@@ -17,8 +17,9 @@ class melm():
     def __init__(self):
         self.weights = []
         self.biases = []
+        self.inputOutput = []
         
-    def main(self,train_data, test_data,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, lastRun):
+    def main(self,train_data, test_data,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, lastRun , plot = False):
 
         if ActivationFunction is None:
             ActivationFunction = 'linear'
@@ -205,7 +206,16 @@ class melm():
         del(TVP)
 
         TY = np.transpose(np.dot(np.transpose(tempH_test), OutputWeight))                     #%   Y: the actual output of the training data
-
+        
+        if plot: graph([ [(T,'Saída Desejada'),(Y,'Saída Obtida')],
+                    [(TVT,'Saída Desejada'),(TY,'Saída Obtida')] ],
+                [ 'Treinamento', 'Teste'] ,
+                'authoral mELM')
+        self.inputOutput = [np.argmax(T,axis=0),
+                    np.argmax(Y,axis=0),
+                    np.argmax(TVT,axis=0),
+                    np.argmax(TY,axis=0)]
+        
         end_time_test = process_time()
         TestingTime=end_time_test-start_time_test           #%   Calculate CPU time (seconds) spent by ELM predicting the whole testing data
 
@@ -294,6 +304,9 @@ class melm():
 
     def get_weights(self):
         return self.weights
+    
+    def getInputOutput(self):
+        return self.inputOutput
 #========================================================================
 def switchActivationFunction(ActivationFunction,InputWeight,BiasofHiddenNeurons,P):
 
@@ -398,7 +411,6 @@ def dilation(w1, b1, samples):
         for i in range(np.size(w1,0)):
             for j in range(np.size(w1,1)):
                 x[j] = min(ss.loc[j], w1[i][j])
-            #breakpoint()
             H[i][s_index] = max(x)+ b1[i][0].item()
 
     return H
@@ -537,6 +549,11 @@ if __name__ == "__main__":
                 break
 
 
+
+    x = ff.getInputOutput()
+    graph_classification( [[(x[0],'Desired Output'),(x[1],'Output')] ],
+		  ['authoral mELM'],'Teste')
+ 
     print('Acurácias:', Accuracies)
     print(ff.get_weights())
     #print("Erros da ultima iteração que são iguais com o da primeira")
