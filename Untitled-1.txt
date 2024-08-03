@@ -1,0 +1,39 @@
+1ª Iteração: 
+    6 neurônios: 3 classe / 3 contra-classe (76%)
+    1763 / 2257 amostras treinamento
+    2603 / 3386 amostras teste
+    
+
+2ª Iteração: 
+    6 neurônios: 3 classe / 3 contra-classe (100%)
+    893 amostras treinamento
+    384 amostras teste
+
+3ª Iteração (Com todos os dados originais):
+    12 neurônios: 6 classe / 6 contra-classe (85%)
+    1945 / 2257 amostras treinamento
+    2871 / 3386 amostras teste
+
+
+85% não é satisfatório
+Portanto, rodar próxima iteração com as amostras que 
+foram classificadas errôneamente da iteração 3
+
+Iteração 5:
+    6 neurônios: 3 classe / 3 contra-classe (95%)
+    578 amostras treinamento
+    249 amostras teste
+
+    3ª Iteração (Com todos os dados originais):
+    12 neurônios: 6 classe / 6 contra-classe (85%)
+    1945 / 2257 amostras treinamento
+    2871 / 3386 amostras teste
+
+
+
+
+
+Experimento:
+    enviar os neuronios da 1, 2 e 3 iteração(com as amostras originais)
+
+    

@@ -142,6 +142,8 @@ def MakeTrainTest(dSet, percentTraining):
     splitPoint = int(len(dSet) * percentTraining)
     train_data, test_data = dSet[:splitPoint], dSet[splitPoint:]
     test_data = test_data.reset_index(drop=True)
+    train_data = train_data.astype('float64')
+    test_data = test_data.astype('float64')
     return [train_data, test_data]
 
 
@@ -242,6 +244,201 @@ def get_modes(matrix, num_of_modes):
                         c[index] = None
             modes.append(column_modes)
         return modes
+
+def matprint(mat, fmt="g"):
+    col_maxes = [max([len(("{:"+fmt+"}").format(x)) for x in col]) for col in mat.T]
+    for x in mat:
+        for i, y in enumerate(x):
+            print(("{:"+str(col_maxes[i])+fmt+"}").format(y), end="  ")
+        print("")
+#========================================================================
+def switchActivationFunction(ActivationFunction,InputWeight,BiasofHiddenNeurons,P):
+
+    if (ActivationFunction == 'sig') or (ActivationFunction == 'sigmoid'):
+        H = sig_kernel(InputWeight, BiasofHiddenNeurons, P)
+    elif (ActivationFunction == 'sin') or (ActivationFunction == 'sine'):
+        H = sin_kernel(InputWeight, BiasofHiddenNeurons, P)
+    elif (ActivationFunction == 'hardlim'):
+        H = hardlim_kernel(InputWeight, BiasofHiddenNeurons, P)
+    elif (ActivationFunction == 'tribas'):
+        H = tribas_kernel(InputWeight, BiasofHiddenNeurons, P)
+    elif (ActivationFunction == 'radbas'):
+        H = radbas_kernel(InputWeight, BiasofHiddenNeurons, P)
+    elif (ActivationFunction == 'erosion'):
+        H = erosion(InputWeight, BiasofHiddenNeurons, P)
+    elif (ActivationFunction == 'dilation'):
+        H = dilation(InputWeight, BiasofHiddenNeurons, P)
+    elif (ActivationFunction == 'fuzzy-erosion') or (ActivationFunction == 'fuzzy_erosion'):
+        H = fuzzy_erosion(InputWeight, BiasofHiddenNeurons, P)
+    elif (ActivationFunction == 'fuzzy-dilation') or (ActivationFunction == 'fuzzy_dilation'):
+        H = fuzzy_dilation(InputWeight, BiasofHiddenNeurons, P)
+    elif (ActivationFunction == 'bitwise-erosion') or (ActivationFunction == 'bitwise_erosion'):
+        H = bitwise_erosion(InputWeight, BiasofHiddenNeurons, P)
+    elif (ActivationFunction == 'bitwise-dilation') or (ActivationFunction == 'bitwise_dilation'):
+        H = bitwise_dilation(InputWeight, BiasofHiddenNeurons, P)
+    else: #'linear'
+        H = linear_kernel(InputWeight, BiasofHiddenNeurons, P)
+    return H
+#========================================================================
+def sig_kernel(w1, b1, samples):
+    #%%%%%%%% Sigmoid
+    tempH = np.dot(w1, samples) + b1
+    H = 1 / (1 + np.exp(-tempH))
+    return H
+#========================================================================
+def sin_kernel(w1, b1, samples):
+    #%%%%%%%% Sine
+    tempH = np.dot(w1, samples) + b1
+    H = np.sin(tempH)
+    return H
+#========================================================================
+def hardlim_kernel(w1, b1, samples):
+    #%%%%%%%% Hard Limit
+    #hardlim(n)	= 1 if n ≥ 0
+    #		= 0 otherwise
+    tempH = np.dot(w1, samples) + b1
+    H = tempH
+    for ii in range(np.size(tempH,0)):
+        for jj in range(np.size(tempH,1)):
+            if tempH[ii][jj] >= 0:
+                H[ii][jj] = 1
+            else:
+                H[ii][jj] = 0
+    return H
+#========================================================================
+def tribas_kernel(w1, b1, samples):
+    #%%%%%%%% Triangular basis function
+    #a = tribas(n) 	= 1 - abs(n), if -1 <= n <= 1
+        #	 	= 0, otherwise
+    tempH = np.dot(w1, samples) + b1
+    H = tempH
+    for ii in range(np.size(tempH,0)):
+        for jj in range(np.size(tempH,1)):
+            if (tempH[ii][jj] >= -1) and (tempH[ii][jj] <= 1):
+                H[ii][jj] = 1 - abs(tempH[ii][jj])
+            else:
+                H[ii][jj] = 0
+    return H
+#========================================================================
+def radbas_kernel(w1, b1, samples):
+    #%%%%%%%% Radial basis function
+    #radbas(n) = exp(-n^2)
+    tempH = np.dot(w1, samples) + b1
+    H = np.exp(-np.power(tempH, 2))
+    return H
+#========================================================================
+def linear_kernel(w1, b1, samples):
+    H = np.dot(w1, samples) + b1
+    return H
+#========================================================================
+def erosion(w1, b1, samples):
+
+    H = np.zeros((np.size(w1,0), np.size(samples,1)))
+    x = np.zeros(np.size(w1,1))
+
+    for s_index in range(np.size(samples,1)):
+        ss = samples.loc[:,s_index]
+        for i in range(np.size(w1,0)):
+            for j in range(np.size(w1,1)):
+                x[j] = max(ss.loc[j], 1-w1[i][j])
+            H[i][s_index] = min(x)+b1[i][0]
+
+    return H
+#========================================================================
+def dilation(w1, b1, samples):
+
+    H = np.zeros((np.size(w1,0), np.size(samples,1)))
+    x = np.zeros(np.size(w1,1))
+
+    for s_index in range(np.size(samples,1)):
+        ss = samples.loc[:,s_index]
+        for i in range(np.size(w1,0)):
+            for j in range(np.size(w1,1)):
+                x[j] = min(ss.loc[j], w1[i][j])
+            H[i][s_index] = max(x)+ b1[i][0]
+
+    return H
+#========================================================================
+def fuzzy_erosion(w1, b1, samples):
+
+    tempH = np.dot(w1, samples) + b1
+    H = np.ones((np.size(w1,0), np.size(samples,1)))
+
+    for s_index in range(np.size(samples,1)):
+        ss = samples.loc[:,s_index]
+        for i in range(np.size(w1,0)):
+            H[i][s_index] = 1- tempH[i][s_index]
+    return H
+#========================================================================
+def fuzzy_dilation(w1, b1, samples):
+
+    tempH = np.dot(w1, samples) + b1
+    H = np.ones((np.size(w1,0), np.size(samples,1)))
+
+    for s_index in range(np.size(samples,1)):
+        ss = samples.loc[:,s_index]
+        for i in range(np.size(w1,0)):
+            for j in range(np.size(w1,1)):
+                H[i][s_index] = H[i][s_index] * (1 - tempH[i][j])
+
+    H = 1 - H
+    return H
+#========================================================================
+def bitwise_erosion(w1, b1, samples):
+
+    H = np.zeros((np.size(w1,0), np.size(samples,1)))
+    x = np.zeros(np.size(w1,1),dtype=bytearray)
+
+    for s_index in range(np.size(samples,1)):
+        ss = samples.loc[:,s_index]
+        for i in range(np.size(w1,0)):
+            for j in range(np.size(w1,1)):
+                x[j] = bytes_or(ss.loc[j], 1-w1[i][j])
+            result = x[0]
+            for j in range(1, np.size(w1,1)):
+                result = bytes_and(result, x[j])
+            temp = struct.unpack('d', result)[0]
+            if math.isnan(temp): temp = 0.0
+            H[i][s_index] = temp + b1[i][0]
+    return H
+#========================================================================
+def bitwise_dilation(w1, b1, samples):
+
+    H = np.zeros((np.size(w1,0), np.size(samples,1)))
+    x = np.zeros(np.size(w1,1),dtype=bytearray)
+
+    for s_index in range(np.size(samples,1)):
+        ss = samples.loc[:,s_index]
+        for i in range(np.size(w1,0)):
+            for j in range(np.size(w1,1)):
+                x[j] = bytes_and(ss.loc[j], w1[i][j])
+            result = x[0]
+            for j in range(1, np.size(w1,1)):
+                result = bytes_or(result, x[j])
+            temp = struct.unpack('d', result)[0]
+            if math.isnan(temp): temp = 0.0
+            H[i][s_index] = temp + b1[i][0]
+    return H
+
+#========================================================================
+def bytes_and(a, b) :
+    a1 = bytearray(a)
+    b1 = bytearray(b)
+    c = bytearray(len(a1))
+
+    for i in range(len(a1)):
+        c[i] = a1[i] & b1[i]
+    return c
+
+#========================================================================
+def bytes_or(a, b) :
+    a1 = bytearray(a)
+    b1 = bytearray(b)
+    c = bytearray(len(a1))
+
+    for i in range(len(a1)):
+        c[i] = a1[i] | b1[i]
+    return c
 
 
 if __name__ == '__main__':
