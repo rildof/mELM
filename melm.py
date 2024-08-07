@@ -46,24 +46,21 @@ class melm():
         
         if verbose: print ('Load training dataset')
         #%%%%%%%%%%% Load training dataset
-        breakpoint()
-        T=np.transpose(train_data.loc[:,0])
-        P=np.transpose(train_data.loc[:,1::])
-        classValues = train_data.loc[train_data[0] == 1.000000]
-        counterClassValues = train_data.loc[train_data[0] == 0.000000]
+        T=np.transpose(train_data.loc[:,0]) # getting the training labels (1.0 or 0.0)
+        P=np.transpose(train_data.loc[:,1::]) # getting the training features
+        classValues = train_data.loc[train_data[0] == 1.000000] #getting rows with class 1
+        counterClassValues = train_data.loc[train_data[0] == 0.000000] #getting rows with class 0
         T = T.reset_index(drop=True)
         P = P.reset_index(drop=True)
-
-        
+        del(train_data)                                    #%   Release raw training data array
         
         classValues = (classValues.reset_index(drop=True))
-        counterClassValues = train_data.loc[train_data[0] == 0.000000]
         counterClassValues = (counterClassValues.reset_index(drop=True))
 
         if verbose: print ('Load testing dataset')
         #%%%%%%%%%%% Load testing dataset
-        TVT=np.transpose(test_data.loc[:,0])
-        TVP=np.transpose(test_data.loc[:,1::])
+        TVT=np.transpose(test_data.loc[:,0]) # getting the testing labels (1.0 or 0.0)
+        TVP=np.transpose(test_data.loc[:,1::]) # getting the testing features
         TVT = TVT.reset_index(drop=True)
         TVP = TVP.reset_index(drop=True)
         del(test_data)                                    #%   Release raw testing data array
@@ -76,6 +73,7 @@ class melm():
         if Elm_Type!=self.REGRESSION:
             if verbose: print ('Preprocessing the data of classification')
             #%%%%%%%%%%%% Preprocessing the data of classification
+            #%%%%%%%%%%%% Obtendo número de classes da base de dados
             sorted_target=np.sort(np.concatenate((T, TVT), axis=0))
             label = []                #%   Find and save in 'label' class label from training and testing data sets
             label.append(sorted_target[0])
@@ -87,18 +85,22 @@ class melm():
 
             number_class=j+1
             NumberofOutputNeurons=number_class
-
+            
             if verbose: print ('Processing the targets of training')
-                #%%%%%%%%%% Processing the targets of training
+            #%%%%%%%%%% Processing the targets of training
+            #%%%%%%%%%%
             temp_T=np.zeros((NumberofOutputNeurons, NumberofTrainingData))
-
-            for i in range(0, NumberofTrainingData):
-                for j in range(0, number_class):
-                    if label[j] == T[i]:
+            
+            for i in range(0, NumberofTrainingData): # Para cada amostra
+                for j in range(0, number_class): # Para cada classe
+                    if label[j] == T[i]: #Se a label estiver dentro das labels da base de dados
                         break
                 temp_T[j][i]=1
             T=temp_T*2-1
-
+            # T se transforma em uma matriz 2xN, onde N é o número de amostras
+            # linha 0: se for 1, é da classe 1, se for -1, é classe 0
+            # linha 1: se for 1, é da classe 0, se for -1, é classe 1
+            
             if len(self.originalData_T) == 0:
                 self.originalData_T = T
                 self.originalData_P = P
@@ -160,16 +162,20 @@ class melm():
                                 if classCalc[index] == c:
                                     classCalc[index] = counterClassMode[index][1]
                     """
-                    
-                classStd = np.nanstd(classCalc)                                                 #C Standard Deviation
-                counterClassStd = np.nanstd(counterClassCalc)                                   #C.C Standard Deviation
-                inputWeight = np.row_stack((classCalc, counterClassCalc))
+                classCalc = classCalc[1::]
+                counterClassCalc = counterClassCalc[1::]
+                classStd = np.nanstd(classValues, axis = 0)[1::]                        #C Standard Deviation
+                counterClassStd = np.nanstd(counterClassValues,axis = 0)[1::]           #C.C Standard Deviation
+                breakpoint()                     #C.C Standard Deviation
+                inputWeight = np.row_stack((classCalc, counterClassCalc,
+                                            classCalc + classStd, counterClassCalc + counterClassStd,
+                                            classCalc - classStd, counterClassCalc - counterClassStd))
                 inputWeight = np.delete(inputWeight, 0, 1) #Apagando primeira coluna pois ela é o atributo que determina a classe para o algoritmo
-                inputWeight = np.row_stack((inputWeight, inputWeight, inputWeight))
-            
+                #inputWeight = np.row_stack((inputWeight, inputWeight, inputWeight))
 
+                
                 BiasofHiddenNeurons = np.nan_to_num(
-                    np.matrix([[0], [0], [classStd], [counterClassStd], [-classStd], [-counterClassStd]]), nan=0)
+                    np.matrix([[0], [0], [0], [0], [0], [0]]), nan=0)
             else:
                 inputWeight = self.weights
                 BiasofHiddenNeurons = self.biases
@@ -186,7 +192,6 @@ class melm():
                 self.biases = np.row_stack((self.biases, BiasofHiddenNeurons))
 
 
-        #TODO salvar inputWeight e TVT da primeira iteração para a base de dados do matlab
         if verbose: print ('Calculate hidden neuron output matrix H')   
              #%%%%%%%%%%% Calculate hidden neuron output matrix H
         H = switchActivationFunction(ActivationFunction,self.weights,self.biases,P)
@@ -283,7 +288,7 @@ class melm():
             self.save_matrix_snippet(H, 'H', 10,10)
             self.save_matrix_snippet(Y, 'Y', 10,10)
             self.accuracies.append([TrainingAccuracy*100, TestingAccuracy*100])
-
+            breakpoint()
             return dSet2
 
     def save_matrix_snippet(self, data, dataname, number_of_lines=0, number_of_columns=0):
