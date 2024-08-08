@@ -165,15 +165,13 @@ class melm():
                 classCalc = classCalc[1::]
                 counterClassCalc = counterClassCalc[1::]
                 classStd = np.nanstd(classValues, axis = 0)[1::]                        #C Standard Deviation
-                counterClassStd = np.nanstd(counterClassValues,axis = 0)[1::]           #C.C Standard Deviation
-                breakpoint()                     #C.C Standard Deviation
-                inputWeight = np.row_stack((classCalc, counterClassCalc,
-                                            classCalc + classStd, counterClassCalc + counterClassStd,
-                                            classCalc - classStd, counterClassCalc - counterClassStd))
+                counterClassStd = np.nanstd(counterClassValues,axis = 0)[1::]           #C.C Standard Deviation                 #C.C Standard Deviation
+                inputWeight = np.row_stack((classCalc, counterClassCalc, #no bias
+                                            classCalc + classStd, counterClassCalc + counterClassStd,  #+bias
+                                            classCalc - classStd, counterClassCalc - counterClassStd)) #-bias
                 inputWeight = np.delete(inputWeight, 0, 1) #Apagando primeira coluna pois ela é o atributo que determina a classe para o algoritmo
                 #inputWeight = np.row_stack((inputWeight, inputWeight, inputWeight))
 
-                
                 BiasofHiddenNeurons = np.nan_to_num(
                     np.matrix([[0], [0], [0], [0], [0], [0]]), nan=0)
             else:
@@ -377,7 +375,7 @@ def main() -> None:
         Values.append(ff.main(TrainingData, TestingData, elm_type, 6, activationFunction, seed, verbose, False ))
         
         #Condição de parada
-        if ff.get_accuracies()[-1][0] == 100.0 or ff.get_accuracies[-1][1] == 100.0 or i == 4 :
+        if ff.get_accuracies()[-1][0] == 100.0 and ff.get_accuracies()[-1][1] == 100.0 or i == 4 :
             i+=1
             print(f'Iteration {i} with Original Training Data:')
             Values.append(ff.main(OriginalTrainingData, OriginalTestingData, elm_type, 6*(i+1), activationFunction,
