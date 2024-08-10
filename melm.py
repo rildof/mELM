@@ -169,9 +169,8 @@ class melm():
                 inputWeight = np.row_stack((classCalc, counterClassCalc, #no bias
                                             classCalc + classStd, counterClassCalc + counterClassStd,  #+bias
                                             classCalc - classStd, counterClassCalc - counterClassStd)) #-bias
-                inputWeight = np.delete(inputWeight, 0, 1) #Apagando primeira coluna pois ela é o atributo que determina a classe para o algoritmo
+                #inputWeight = np.delete(inputWeight, 0, 1) #Apagando primeira coluna pois ela é o atributo que determina a classe para o algoritmo
                 #inputWeight = np.row_stack((inputWeight, inputWeight, inputWeight))
-
                 BiasofHiddenNeurons = np.nan_to_num(
                     np.matrix([[0], [0], [0], [0], [0], [0]]), nan=0)
             else:

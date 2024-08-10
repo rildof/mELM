@@ -245,7 +245,7 @@ def get_modes(matrix, num_of_modes):
             modes.append(column_modes)
         return modes
 
-def matprint(mat, fmt="g"):
+def matprint(mat, fmt=".4f"):
     col_maxes = [max([len(("{:"+fmt+"}").format(x)) for x in col]) for col in mat.T]
     for x in mat:
         for i, y in enumerate(x):
