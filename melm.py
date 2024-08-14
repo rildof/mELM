@@ -21,10 +21,15 @@ class melm():
         self.inputOutput = []
         self.originalData_P = []
         self.originalData_T = []
+        self.originalData_TVT = []
+        self.originalData_TVP = []
+        self.originalTrainData = []
+        self.originalTestData = []
         self.accuracies = []
+        self.iteration = 0
         
     def main(self,train_data, test_data,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, lastRun , plot = False):
-
+        
         if ActivationFunction is None:
             ActivationFunction = 'linear'
         print('kernel ' + ActivationFunction)
@@ -130,11 +135,28 @@ class melm():
                 #counterClassCalc = np.nanmean(counterClassValues, axis = 0)                                 #Average
                 #classCalc = np.nanmedian(classValues, axis = 0)                                            #Median
                 #counterClassCalc = np.nanmedian(counterClassValues, axis = 0)                              #Median
-                
+                classValues.drop(classValues.columns[0], axis=1, inplace=True)
+                counterClassValues.drop(counterClassValues.columns[0], axis=1, inplace=True)
                 if calcMode == 'mode':
                     #Class
                     if not classValues.empty:
-                        classMode = get_modes(classValues, 2)  
+                        classMode = get_modes(classValues, self.iteration + 2)  
+                        for l in classMode:
+                            l = list(set(l))
+                        if self.iteration > 0:
+                            classMaxValueIndex = classMode.index(max(classMode, key=lambda x: x[0])) #max index of column
+                            for value in self.weights.T[classMaxValueIndex]:# searching for equal value in the same column
+                                #if classMode[classMaxValueIndex][0] == 0.1: break
+                                
+                                if value in classMode[classMaxValueIndex]: #if value is contained in the modes
+                                    #find its index
+                                    #index = classMode[classMaxValueIndex].index(value)
+                                    #substitute to the next mode
+                                    breakpoint()
+                                    classMode[classMaxValueIndex] = [v for v in classMode[classMaxValueIndex] if v!= value]
+                                    #classMode[classMaxValueIndex][0] = classMode[classMaxValueIndex][index+1]
+                                    lastValue = value
+                            if classMode[classMaxValueIndex] == [] : classMode[classMaxValueIndex] = [lastValue]
                         classCalc = [mode[0] for mode in classMode]  
                     else:
                         classMode = len(classValues.columns) * [np.nan]
@@ -142,7 +164,22 @@ class melm():
                         
                     #counterClass
                     if not counterClassValues.empty:
-                        counterClassMode = get_modes(counterClassValues, 2)
+                        counterClassMode = get_modes(counterClassValues, self.iteration + 2)
+                        for l in counterClassMode:
+                            l = list(set(l))
+                        if self.iteration > 0:
+                            counterClassMaxValueIndex = counterClassMode.index(max(counterClassMode, key=lambda x: x[0])) #max index of column
+                            for value in self.weights.T[counterClassMaxValueIndex]:# searching for equal value in the same column
+                                #if counterClassMode[counterClassMaxValueIndex][0] == 0.1: break
+                                
+                                if value in counterClassMode[counterClassMaxValueIndex]: #if value is contained in the modes
+                                    #find its index
+                                    #index = counterClassMode[counterClassMaxValueIndex].index(value)
+                                    counterClassMode[counterClassMaxValueIndex] = [v for v in counterClassMode[counterClassMaxValueIndex] if v!= value]
+                                    #substitute to the next mode
+                                    #counterClassMode[counterClassMaxValueIndex][0] = counterClassMode[counterClassMaxValueIndex][index+1]    
+                                    CClastValue = value
+                            if counterClassMode[counterClassMaxValueIndex] == [] : counterClassMode[counterClassMaxValueIndex] = [CClastValue]  
                         counterClassCalc = [mode[0] for mode in counterClassMode]
                     else:
                         counterClassMode = len(counterClassValues.columns) * [np.nan]
@@ -162,10 +199,10 @@ class melm():
                                 if classCalc[index] == c:
                                     classCalc[index] = counterClassMode[index][1]
                     """
-                classCalc = classCalc[1::]
-                counterClassCalc = counterClassCalc[1::]
-                classStd = np.nanstd(classValues, axis = 0)[1::]                        #C Standard Deviation
-                counterClassStd = np.nanstd(counterClassValues,axis = 0)[1::]           #C.C Standard Deviation                 #C.C Standard Deviation
+                classCalc = classCalc
+                counterClassCalc = counterClassCalc
+                classStd = np.nanstd(classValues, axis = 0)                       #C Standard Deviation
+                counterClassStd = np.nanstd(counterClassValues,axis = 0)           #C.C Standard Deviation                 #C.C Standard Deviation
                 inputWeight = np.row_stack((classCalc, counterClassCalc, #no bias
                                             classCalc + classStd, counterClassCalc + counterClassStd,  #+bias
                                             classCalc - classStd, counterClassCalc - counterClassStd)) #-bias
@@ -191,11 +228,21 @@ class melm():
 
         if verbose: print ('Calculate hidden neuron output matrix H')   
              #%%%%%%%%%%% Calculate hidden neuron output matrix H
-        H = switchActivationFunction(ActivationFunction,self.weights,self.biases,P)
+        
+        #getting original P and T
+        if self.iteration == 0:
+            self.originalData_P = P
+            self.originalData_T = T 
+            self.originalData_TVT = TVT
+            self.originalData_TVP = TVP
+            self.originalTrainData = train_data_2
+            self.originalTestData = test_data_2
+
+        H = switchActivationFunction(ActivationFunction,self.weights,self.biases,self.originalData_P)
 
         if verbose: print ('Calculate output weights OutputWeight (beta_i)')
         #%%%%%%%%%%% Calculate output weights OutputWeight (beta_i)
-        OutputWeight = np.dot(np.linalg.pinv(np.transpose(H)), np.transpose(T))
+        OutputWeight = np.dot(np.linalg.pinv(np.transpose(H)), np.transpose(self.originalData_T))
 
         end_time_train =  process_time()
         TrainingTime=end_time_train-start_time_train       # %   Calculate CPU time (seconds) spent for training ELM
@@ -207,7 +254,7 @@ class melm():
         if Elm_Type == self.REGRESSION:
             if verbose: print ('Calculate training accuracy (RMSE) for regression case')
             #   Calculate training accuracy (RMSE) for regression case
-            TrainingAccuracy = np.square(np.subtract(T, Y)).mean()
+            TrainingAccuracy = np.square(np.subtract(self.originalData_T, Y)).mean()
             TrainingAccuracy = round(TrainingAccuracy, 6)
             print('Training Accuracy: ' + str(TrainingAccuracy)+' ( ' + str(np.size(Y,0)) + ' samples) (regression)')
         #del(H)
@@ -215,7 +262,8 @@ class melm():
         if verbose: print ('Calculate the output of testing input')
         start_time_test = process_time()
         #%%%%%%%%%%% Calculate the output of testing input
-        tempH_test = switchActivationFunction(ActivationFunction,self.weights,self.biases,TVP)
+
+        tempH_test = switchActivationFunction(ActivationFunction,self.weights,self.biases,self.originalData_TVP)
         del(TVP)
         TY = np.transpose(np.dot(np.transpose(tempH_test), OutputWeight))                     #%   Y: the actual output of the training data
         
@@ -223,9 +271,9 @@ class melm():
                     [(TVT,'Saída Desejada'),(TY,'Saída Obtida')] ],
                 [ 'Treinamento', 'Teste'] ,
                 'authoral mELM')
-        self.inputOutput = [np.argmax(T,axis=0),
+        self.inputOutput = [np.argmax(self.originalData_T,axis=0),
                     np.argmax(Y,axis=0),
-                    np.argmax(TVT,axis=0),
+                    np.argmax(self.originalData_TVT,axis=0),
                     np.argmax(TY,axis=0)]
         
         end_time_test = process_time()
@@ -246,7 +294,7 @@ class melm():
             MissClassificationRate_Testing=0
             correctIndexes= np.array([])
             incorrectIndexes = np.array([])
-            label_index_expected = np.argmax(T, axis=0)   # Maxima along the second axis
+            label_index_expected = np.argmax(self.originalData_T, axis=0)   # Maxima along the second axis
             label_index_actual = np.argmax(Y, axis=0)   # Maxima along the second axis
 
             for i in range(0, np.size(label_index_expected,0)):
@@ -255,13 +303,13 @@ class melm():
                             incorrectIndexes = np.append(incorrectIndexes, i)   
                     else:
                         correctIndexes = np.append(correctIndexes, i)
-            train_data_2 = train_data_2.drop(correctIndexes)
-            train_data_2 = train_data_2.reset_index(drop=True)
+            train_data_2 = self.originalTrainData.drop(correctIndexes)
+            train_data_2 = self.originalTrainData.reset_index(drop=True)
             TrainingAccuracy = 1-MissClassificationRate_Training/np.size(label_index_expected,0)
             TrainingAccuracy = round(TrainingAccuracy, 6)
             print('Training Accuracy: ' + str(TrainingAccuracy*100)+' % (',str(np.size(label_index_expected,0)-MissClassificationRate_Training),'/',str(np.size(label_index_expected,0)),') (classification)')
             
-            label_index_expected = np.argmax(TVT, axis=0)   # Maxima along the second axis
+            label_index_expected = np.argmax(self.originalData_TVT, axis=0)   # Maxima along the second axis
             label_index_actual = np.argmax(TY, axis=0)   # Maxima along the second axis
             CorrectIndexesTest= np.array([])
             for i in range(0, np.size(label_index_expected,0)):
@@ -271,7 +319,7 @@ class melm():
                         CorrectIndexesTest = np.append(CorrectIndexesTest, i)
             TestingAccuracy=1-MissClassificationRate_Testing/np.size(label_index_expected,0)
             TestingAccuracy = round(TestingAccuracy, 6)
-            test_data_2 = test_data_2.drop(CorrectIndexesTest)
+            test_data_2 = self.originalTestData.drop(CorrectIndexesTest)
             
             dSet2 = pd.concat([train_data_2, test_data_2], ignore_index=True)
 
@@ -285,6 +333,7 @@ class melm():
             self.save_matrix_snippet(H, 'H', 10,10)
             self.save_matrix_snippet(Y, 'Y', 10,10)
             self.accuracies.append([TrainingAccuracy*100, TestingAccuracy*100])
+            self.iteration +=1
             breakpoint()
             return dSet2
 
@@ -374,7 +423,7 @@ def main() -> None:
         Values.append(ff.main(TrainingData, TestingData, elm_type, 6, activationFunction, seed, verbose, False ))
         
         #Condição de parada
-        if ff.get_accuracies()[-1][0] == 100.0 and ff.get_accuracies()[-1][1] == 100.0 or i == 4 :
+        if ff.get_accuracies()[-1][0] == 100.0 and ff.get_accuracies()[-1][1] == 100.0 or i == 6 :
             i+=1
             print(f'Iteration {i} with Original Training Data:')
             Values.append(ff.main(OriginalTrainingData, OriginalTestingData, elm_type, 6*(i+1), activationFunction,
