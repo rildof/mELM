@@ -2,7 +2,7 @@ import os
 import numpy as np
 from itertools import product
 from melm_lib import *
-
+from scipy.linalg import pinv
 import plotly.graph_objects as go
 import os
 
@@ -398,17 +398,80 @@ def grafico_auxiliar(author, ActivationFunction, pasta, NumberofHiddenNeurons,
     plotar(author, pasta, ActivationFunction, NumberofHiddenNeurons,
            entrada_benigno, entrada_maligno, xx1, yy1, xx2, yy2, acc)
 
+def grafico_nohidden_auxiliar(author, pasta, ActivationFunction, NumberofHiddenNeurons,
+                              NumberofTrainingData, NumberofTestingData,
+                              InputWeight, P, T, TVP,
+                              BiasofHiddenNeurons,
+                              entrada_benigno, entrada_maligno):
+    
+    # Calcula a matriz tempH
+    tempH = np.dot(InputWeight, P)
+    BiasMatrix = np.tile(BiasofHiddenNeurons, (1, NumberofTrainingData))
+    tempH += BiasMatrix
+
+    # Escolhe a função de ativação
+    if ActivationFunction.lower() in ['sig', 'sigmoid']:
+        H = 1 / (1 + np.exp(-tempH))
+        OutputWeight = np.dot(pinv(H.T), T.T)
+        Y = np.dot(H.T, OutputWeight).T
+    elif ActivationFunction.lower() in ['sin', 'sine']:
+        H = np.sin(tempH)
+        OutputWeight = np.dot(pinv(H.T), T.T)
+        Y = np.dot(H.T, OutputWeight).T
+    elif ActivationFunction.lower() == 'radbas':
+        H = np.exp(-tempH**2)  # Assuming radbas is Gaussian RBF
+        OutputWeight = np.dot(pinv(H.T), T.T)
+        Y = np.dot(H.T, OutputWeight).T
+    elif ActivationFunction.lower() == 'linear':
+        Omega_train = np.dot(P.T, P)
+        n = T.shape[1]
+        OutputWeight = np.linalg.solve(Omega_train + np.eye(n)/1, T.T)
+        Y = np.dot(Omega_train, OutputWeight).T
+    elif ActivationFunction.lower() in ['fuzzy-dilation', 'fuzzy-erosion']:
+        H = switchActivationFunction(ActivationFunction,InputWeight, BiasMatrix, P)
+        OutputWeight = np.dot(pinv(H.T), T.T)
+        Y = np.dot(H.T, OutputWeight).T
+    
+    # Avalia a rede de treinamento
+    acc = avaliarRedeTreino(Y, NumberofTrainingData, T)
+    
+    # Calcula a matriz tempH_test
+    tempH_test = np.dot(InputWeight, TVP)
+    BiasMatrix = np.tile(BiasofHiddenNeurons, (1, NumberofTestingData))
+    tempH_test += BiasMatrix
+    
+    # Escolhe a função de ativação para os dados de teste
+    if ActivationFunction.lower() in ['sig', 'sigmoid']:
+        H_test = 1 / (1 + np.exp(-tempH_test))
+    elif ActivationFunction.lower() in ['sin', 'sine']:
+        H_test = np.sin(tempH_test)
+    elif ActivationFunction.lower() == 'radbas':
+        H_test = np.exp(-tempH_test**2)  # Assuming radbas is Gaussian RBF
+    elif ActivationFunction.lower() == 'linear':
+        H_test = np.dot(P.T, TVP)
+    elif ActivationFunction.lower() in ['fuzzy-dilation', 'fuzzy-erosion']:
+        H_test = switchActivationFunction(ActivationFunction, InputWeight, BiasMatrix, TVP)
+    
+    # Calcula a saída para os dados de teste
+    TY = np.dot(H_test.T, OutputWeight).T
+    
+    # Avalia a rede para os dados de teste
+    xx1, yy1, xx2, yy2 = avaliarRede(TY, TVP)
+    
+    # Plota os resultados
+    plotar(author, pasta, ActivationFunction, NumberofHiddenNeurons,
+           entrada_benigno, entrada_maligno, xx1, yy1, xx2, yy2, acc)
 
 def grafico_xai():
-    NumberofHiddenNeurons = 100;
-    #grafico_xai_inter('sigmoid', NumberofHiddenNeurons);
-    grafico_xai_inter('linear', NumberofHiddenNeurons);
-    #grafico_xai_inter('radbas', NumberofHiddenNeurons);
-    #grafico_xai_inter('sine', NumberofHiddenNeurons);
+    NumberofHiddenNeurons = 100
+    #grafico_xai_inter('sigmoid', NumberofHiddenNeurons)
+    grafico_xai_inter('linear', NumberofHiddenNeurons)
+    #grafico_xai_inter('radbas', NumberofHiddenNeurons)
+    #grafico_xai_inter('sine', NumberofHiddenNeurons)
 
 def grafico_xai_inter(kernel, NumberofHiddenNeurons):
 
-    [x1, y1, x2, y2, x11, y11, x22, y22] = distribuicao(kernel);
+    [x1, y1, x2, y2, x11, y11, x22, y22] = distribuicao(kernel)
 
     iteracao = 1
     NumberofInputNeurons = 2
@@ -471,12 +534,29 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons):
     NumberofTrainingData = P.shape[1]
 
     # ELM Clássica
-    grafico_auxiliar('PINHEIRO','dilatacao_classica', kernel, NumberofHiddenNeurons,
-                         NumberofTrainingData, NumberofTestingData,
-                         InputWeight, P, T, TVP,
-                         BiasofHiddenNeurons,
-                         entrada_benigno, entrada_maligno);
+    # grafico_auxiliar('PINHEIRO','dilatacao_classica', kernel, NumberofHiddenNeurons,
+    #                      NumberofTrainingData, NumberofTestingData,
+    #                      InputWeight, P, T, TVP,
+    #                      BiasofHiddenNeurons,
+    #                      entrada_benigno, entrada_maligno)
+    
+    # grafico_auxiliar('PINHEIRO','erosao_classica', kernel, NumberofHiddenNeurons,
+    #                     NumberofTrainingData,NumberofTestingData,
+    #                     InputWeight, P, T, TVP,
+    #                     BiasofHiddenNeurons,
+    #                     entrada_benigno, entrada_maligno)
     #ELM sem camada escondida
+    grafico_nohidden_auxiliar('HUANG',kernel, kernel, NumberofHiddenNeurons,
+                            NumberofTrainingData,NumberofTestingData, 
+                            InputWeight, P, T, TVP,
+                            BiasofHiddenNeurons,
+                            entrada_benigno, entrada_maligno)
+
+    # grafico_nohidden_auxiliar('HUANG', kernel, 'ero_fuzzy', NumberofHiddenNeurons,
+    #                             NumberofTrainingData,NumberofTestingData, 
+    #                             InputWeight, P, T, TVP,
+    #                             BiasofHiddenNeurons,
+    #                             entrada_benigno, entrada_maligno) 
     #ELM XAI
     #ELM XAI Rildo
     
