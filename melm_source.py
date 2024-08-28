@@ -169,7 +169,7 @@ class melm():
         			if label_index_actual[i]!=label_index_expected[i]:
             				MissClassificationRate_Training=MissClassificationRate_Training+1
 
-			TrainingAccuracy=1-MissClassificationRate_Training/np.size(label_index_expected,0)
+			TrainingAccuracy = 1 - MissClassificationRate_Training / np.size(label_index_expected, 0)
 			TrainingAccuracy = round(TrainingAccuracy, 6) 
 			print('Training Accuracy: ' + str(TrainingAccuracy*100)+' % (',str(np.size(label_index_expected,0)-MissClassificationRate_Training),'/',str(np.size(label_index_expected,0)),') (classification)')
 			
@@ -180,7 +180,7 @@ class melm():
 				if label_index_actual[i]!=label_index_expected[i]:
             				MissClassificationRate_Testing=MissClassificationRate_Testing+1
 
-			TestingAccuracy=1-MissClassificationRate_Testing/np.size(label_index_expected,0)
+			TestingAccuracy = 1 - MissClassificationRate_Testing / np.size(label_index_expected, 0)
 			TestingAccuracy = round(TestingAccuracy, 6) 
 			print('Testing Accuracy: ' + str(TestingAccuracy*100)+' % (',str(np.size(label_index_expected,0)-MissClassificationRate_Testing),'/',str(np.size(label_index_expected,0)),') (classification)')
 			

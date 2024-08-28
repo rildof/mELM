@@ -4,13 +4,15 @@ from time import process_time
 from scipy import stats
 from melm_lib import *
 from collections import Counter
-
+import copy
 import math
 import struct
 import sys
 import argparse
 import numpy as np
 import pandas as pd
+import struct
+from collections import Counter
 
 np.set_printoptions(threshold=np.inf)
 # ========================================================================
@@ -26,7 +28,9 @@ class melm():
         self.originalTrainData = []
         self.originalTestData = []
         self.accuracies = []
+        self.saturated_neurons = []
         self.iteration = 0
+        self.weight_labels = []
         
     def main(self,train_data, test_data,Elm_Type,NumberofHiddenNeurons,ActivationFunction,nSeed,verbose, lastRun , plot = False):
         
@@ -53,15 +57,9 @@ class melm():
         #%%%%%%%%%%% Load training dataset
         T=np.transpose(train_data.loc[:,0]) # getting the training labels (1.0 or 0.0)
         P=np.transpose(train_data.loc[:,1::]) # getting the training features
-        classValues = train_data.loc[train_data[0] == 1.000000] #getting rows with class 1
-        counterClassValues = train_data.loc[train_data[0] == 0.000000] #getting rows with class 0
         T = T.reset_index(drop=True)
         P = P.reset_index(drop=True)
-        del(train_data)                                    #%   Release raw training data array
-        
-        classValues = (classValues.reset_index(drop=True))
-        counterClassValues = (counterClassValues.reset_index(drop=True))
-
+                                 #%   Release raw training data array
         if verbose: print ('Load testing dataset')
         #%%%%%%%%%%% Load testing dataset
         TVT=np.transpose(test_data.loc[:,0]) # getting the testing labels (1.0 or 0.0)
@@ -87,10 +85,9 @@ class melm():
                 if sorted_target[i] != label[j]:
                     j=j+1
                     label.append(sorted_target[i])
-
+            
             number_class=j+1
             NumberofOutputNeurons=number_class
-            
             if verbose: print ('Processing the targets of training')
             #%%%%%%%%%% Processing the targets of training
             #%%%%%%%%%%
@@ -128,88 +125,10 @@ class melm():
         #%%%%%%%%%%% Random generate input weights inputWeight (w_i) and biases BiasofHiddenNeurons (b_i) of hidden neurons
 
         if (ActivationFunction == 'erosion') or (ActivationFunction == 'dilation') or (ActivationFunction == 'fuzzy-erosion') or (ActivationFunction == 'fuzzy_erosion') or (ActivationFunction == 'fuzzy-dilation') or (ActivationFunction == 'fuzzy_dilation') or (ActivationFunction == 'bitwise-erosion') or (ActivationFunction == 'bitwise_erosion') or (ActivationFunction == 'bitwise-dilation') or (ActivationFunction == 'bitwise_dilation') :
-            #inputWeight = np.random.uniform(np.amin(np.amin(P)), np.amax(np.amax(P)), (NumberofHiddenNeurons,NumberofInputNeurons))
             if lastRun == False:
-                calcMode = 'mode'
-                #classCalc = np.nanmean(classValues, axis = 0)                                               #Average
-                #counterClassCalc = np.nanmean(counterClassValues, axis = 0)                                 #Average
-                #classCalc = np.nanmedian(classValues, axis = 0)                                            #Median
-                #counterClassCalc = np.nanmedian(counterClassValues, axis = 0)                              #Median
-                classValues.drop(classValues.columns[0], axis=1, inplace=True)
-                counterClassValues.drop(counterClassValues.columns[0], axis=1, inplace=True)
-                if calcMode == 'mode':
-                    #Class
-                    if not classValues.empty:
-                        classMode = get_modes(classValues, self.iteration + 2)  
-                        for l in classMode:
-                            l = list(set(l))
-                        if self.iteration > 0:
-                            classMaxValueIndex = classMode.index(max(classMode, key=lambda x: x[0])) #max index of column
-                            for value in self.weights.T[classMaxValueIndex]:# searching for equal value in the same column
-                                #if classMode[classMaxValueIndex][0] == 0.1: break
-                                
-                                if value in classMode[classMaxValueIndex]: #if value is contained in the modes
-                                    #find its index
-                                    #index = classMode[classMaxValueIndex].index(value)
-                                    #substitute to the next mode
-                                    breakpoint()
-                                    classMode[classMaxValueIndex] = [v for v in classMode[classMaxValueIndex] if v!= value]
-                                    #classMode[classMaxValueIndex][0] = classMode[classMaxValueIndex][index+1]
-                                    lastValue = value
-                            if classMode[classMaxValueIndex] == [] : classMode[classMaxValueIndex] = [lastValue]
-                        classCalc = [mode[0] for mode in classMode]  
-                    else:
-                        classMode = len(classValues.columns) * [np.nan]
-                        classCalc = len(classValues.columns) * [np.nan]   
-                        
-                    #counterClass
-                    if not counterClassValues.empty:
-                        counterClassMode = get_modes(counterClassValues, self.iteration + 2)
-                        for l in counterClassMode:
-                            l = list(set(l))
-                        if self.iteration > 0:
-                            counterClassMaxValueIndex = counterClassMode.index(max(counterClassMode, key=lambda x: x[0])) #max index of column
-                            for value in self.weights.T[counterClassMaxValueIndex]:# searching for equal value in the same column
-                                #if counterClassMode[counterClassMaxValueIndex][0] == 0.1: break
-                                
-                                if value in counterClassMode[counterClassMaxValueIndex]: #if value is contained in the modes
-                                    #find its index
-                                    #index = counterClassMode[counterClassMaxValueIndex].index(value)
-                                    counterClassMode[counterClassMaxValueIndex] = [v for v in counterClassMode[counterClassMaxValueIndex] if v!= value]
-                                    #substitute to the next mode
-                                    #counterClassMode[counterClassMaxValueIndex][0] = counterClassMode[counterClassMaxValueIndex][index+1]    
-                                    CClastValue = value
-                            if counterClassMode[counterClassMaxValueIndex] == [] : counterClassMode[counterClassMaxValueIndex] = [CClastValue]  
-                        counterClassCalc = [mode[0] for mode in counterClassMode]
-                    else:
-                        counterClassMode = len(counterClassValues.columns) * [np.nan]
-                        counterClassCalc = len(counterClassValues.columns) * [np.nan]
-                    
-                    #substituting to the second mode if the first is the same as previous iteration
-                    """
-                    if not np.array_equal(self.weights, []):
-                        #Class
-                        if not list(set(classCalc)) == [np.nan]:
-                            for index, c in enumerate(self.weights[-6]):
-                                if classCalc[index] == c:
-                                    classCalc[index] = classMode[index][1]
-                        #counterClass
-                        if not list(set(counterClassCalc)) == [np.nan]:
-                            for index, c in enumerate(self.weights[-5]):
-                                if classCalc[index] == c:
-                                    classCalc[index] = counterClassMode[index][1]
-                    """
-                classCalc = classCalc
-                counterClassCalc = counterClassCalc
-                classStd = np.nanstd(classValues, axis = 0)                       #C Standard Deviation
-                counterClassStd = np.nanstd(counterClassValues,axis = 0)           #C.C Standard Deviation                 #C.C Standard Deviation
-                inputWeight = np.row_stack((classCalc, counterClassCalc, #no bias
-                                            classCalc + classStd, counterClassCalc + counterClassStd,  #+bias
-                                            classCalc - classStd, counterClassCalc - counterClassStd)) #-bias
-                #inputWeight = np.delete(inputWeight, 0, 1) #Apagando primeira coluna pois ela é o atributo que determina a classe para o algoritmo
-                #inputWeight = np.row_stack((inputWeight, inputWeight, inputWeight))
-                BiasofHiddenNeurons = np.nan_to_num(
-                    np.matrix([[0], [0], [0], [0], [0], [0]]), nan=0)
+                inputWeight = get_weights(self, train_data, label)
+                BiasofHiddenNeurons = np.zeros((len(label),1))
+                
             else:
                 inputWeight = self.weights
                 BiasofHiddenNeurons = self.biases
@@ -237,11 +156,14 @@ class melm():
             self.originalData_TVP = TVP
             self.originalTrainData = train_data_2
             self.originalTestData = test_data_2
+            self.saturated_neurons = np.zeros((NumberofOutputNeurons,NumberofInputNeurons))
 
         H = switchActivationFunction(ActivationFunction,self.weights,self.biases,self.originalData_P)
-
         if verbose: print ('Calculate output weights OutputWeight (beta_i)')
         #%%%%%%%%%%% Calculate output weights OutputWeight (beta_i)
+        pinvs = np.linalg.pinv(np.transpose(H))
+        greatest_interval = [abs(max(v)  - min(v)) for v in pinvs]
+        
         OutputWeight = np.dot(np.linalg.pinv(np.transpose(H)), np.transpose(self.originalData_T))
 
         end_time_train =  process_time()
@@ -333,9 +255,19 @@ class melm():
             self.save_matrix_snippet(H, 'H', 10,10)
             self.save_matrix_snippet(Y, 'Y', 10,10)
             self.accuracies.append([TrainingAccuracy*100, TestingAccuracy*100])
+            if self.iteration == 10 or self.iteration == 20: breakpoint()
             self.iteration +=1
-            breakpoint()
+
             return dSet2
+
+    
+    def is_saturated(self, column_index, classe):
+        #method that checks if a neuron is saturated
+        #column_index: index of the column to be checked
+        if self.iteration == 0: return False
+        if self.saturated_neurons[classe][column_index] == 1: return True
+        return False 
+
 
     def save_matrix_snippet(self, data, dataname, number_of_lines=0, number_of_columns=0):
         #method that saves only 10 first lines of a matrix  
@@ -408,25 +340,152 @@ def main() -> None:
     
     ff = melm() #calling melm class
     if 'matlab' in benign_path:
-        [TrainingData, TestingData] = MakeTrainTest(ProcessCSV_matlab(benign_path,malign_path), 0.7)
+        entrada_maligno = [
+    [-4.2308, -0.7077, 2.0000],
+    [-3.7179, -0.5795, 2.0000],
+    [-3.4615, -0.5654, 2.0000],
+    [-2.6923, -0.3731, 2.0000],
+    [-2.4359, -0.2590, 2.0000],
+    [-1.9231, -0.1808, 2.0000],
+    [-0.6410, 0.1897, 2.0000],
+    [-0.1282, 0.2679, 2.0000],
+    [0.1282, 0.3821, 2.0000],
+    [0.3846, 0.4462, 2.0000],
+    [1.1538, 0.6385, 2.0000],
+    [1.4103, 0.6526, 2.0000],
+    [2.1795, 0.8949, 2.0000],
+    [2.6923, 0.9731, 2.0000],
+    [2.9487, 1.0872, 2.0000],
+    [3.4615, 1.1654, 2.0000],
+    [3.7179, 1.2295, 2.0000],
+    [4.2308, 1.3577, 2.0000],
+    [4.7436, 1.4859, 2.0000],
+    [5.0000, 1.6000, 2.0000],
+    [-0.6410, 0.1258, 2.0000],
+    [-0.6410, -0.4492, 2.0000],
+    [-0.1282, 0.1429, 2.0000],
+    [-0.1282, -0.2688, 2.0000],
+    [0.1282, 0.3046, 2.0000],
+    [0.1282, -0.3313, 2.0000],
+    [0.3846, 0.3671, 2.0000],
+    [0.3846, -0.2262, 2.0000],
+    [1.1538, 0.3885, 2.0000],
+    [1.1538, -0.1068, 2.0000],
+    [1.4103, 0.5226, 2.0000],
+    [1.4103, -0.0653, 2.0000],
+    [2.1795, 0.6565, 2.0000],
+    [2.1795, 0.0821, 2.0000],
+    [2.1795, -0.5191, 2.0000],
+    [2.6923, 0.8361, 2.0000],
+    [2.6923, 0.1414, 2.0000],
+    [2.6923, -0.4009, 2.0000],
+    [2.9487, 0.9121, 2.0000],
+    [2.9487, 0.2071, 2.0000],
+    [2.9487, -0.3080, 2.0000],
+    [3.4615, 0.7439, 2.0000],
+    [3.4615, 0.3336, 2.0000],
+    [3.4615, -0.2236, 2.0000],
+    [3.7179, 0.9973, 2.0000],
+    [3.7179, 0.3186, 2.0000],
+    [3.7179, -0.1810, 2.0000],
+    [4.2308, 1.2098, 2.0000],
+    [4.2308, 0.4533, 2.0000],
+    [4.2308, -0.0996, 2.0000],
+    [4.7436, 0.8352, 2.0000],
+    [4.7436, 0.4906, 2.0000],
+    [4.7436, -0.0291, 2.0000],
+    [5.0000, 0.8321, 2.0000],
+    [5.0000, 0.4731, 2.0000],
+    [5.0000, 0.0344, 2.0000],
+    [5.0000, -0.6090, 2.0000]
+]
+        entrada_benigno = [
+    [-5.0000, -0.4500, 1.0000],
+    [-4.4872, -0.3718, 1.0000],
+    [-3.4615, -0.1154, 1.0000],
+    [-2.6923, 0.1269, 1.0000],
+    [-2.4359, 0.1410, 1.0000],
+    [-1.9231, 0.3192, 1.0000],
+    [-1.6667, 0.3833, 1.0000],
+    [-1.4103, 0.4474, 1.0000],
+    [-0.6410, 0.5897, 1.0000],
+    [-0.1282, 0.7179, 1.0000],
+    [0.1282, 0.7821, 1.0000],
+    [0.3846, 0.8962, 1.0000],
+    [0.6410, 0.9603, 1.0000],
+    [1.1538, 1.0885, 1.0000],
+    [1.4103, 1.1026, 1.0000],
+    [2.1795, 1.2949, 1.0000],
+    [2.6923, 1.4731, 1.0000],
+    [2.9487, 1.5372, 1.0000],
+    [4.4872, 1.9218, 1.0000],
+    [4.7436, 1.9859, 1.0000],
+    [-5.0000, 0.5224, 1.0000],
+    [-5.0000, 1.6459, 1.0000],
+    [-4.4872, 0.5410, 1.0000],
+    [-4.4872, 1.7133, 1.0000],
+    [-3.4615, 0.8727, 1.0000],
+    [-3.4615, 1.9073, 1.0000],
+    [-2.6923, 0.1600, 1.0000],
+    [-2.6923, 1.1520, 1.0000],
+    [-2.4359, 0.1794, 1.0000],
+    [-2.4359, 1.4195, 1.0000],
+    [-1.9231, 0.3765, 1.0000],
+    [-1.9231, 1.4374, 1.0000],
+    [-1.6667, 0.5440, 1.0000],
+    [-1.6667, 1.7356, 1.0000],
+    [-1.4103, 0.6539, 1.0000],
+    [-1.4103, 1.7192, 1.0000],
+    [-0.6410, 0.7125, 1.0000],
+    [-0.6410, 1.6834, 1.0000],
+    [-0.1282, 1.0353, 1.0000],
+    [0.1282, 1.1112, 1.0000],
+    [0.3846, 1.2486, 1.0000],
+    [0.6410, 1.3524, 1.0000],
+    [1.1538, 1.4001, 1.0000],
+    [1.4103, 1.2429, 1.0000],
+    [2.1795, 1.4656, 1.0000],
+    [2.9487, 1.8026, 1.0000],
+    [2.9487, 1.8026, 1.0000],
+    [2.9487, 1.8026, 1.0000],
+    [2.9487, 1.8026, 1.0000],
+    [2.9487, 1.8026, 1.0000],
+    [2.9487, 1.8026, 1.0000],
+    [2.9487, 1.8026, 1.0000],
+    [2.9487, 1.8026, 1.0000],
+    [2.9487, 1.8026, 1.0000],
+    [2.9487, 1.8026, 1.0000],
+    [2.9487, 1.8026, 1.0000]
+]
+        
+        df1 = pd.DataFrame(entrada_benigno).astype('float64')
+        df2 = pd.DataFrame(entrada_maligno).astype('float64')
+        dSet = pd.concat([df1, df2], ignore_index=True)
+        dSet = dSet.reset_index(drop=True)
+        dSet = dSet[[2,0,1]].reset_index(drop=True)
+        dSet.columns = range(dSet.shape[1])
+        breakpoint()
+        [TrainingData, TestingData] = MakeTrainTest(dSet, 0.9)
+    elif 'matlab' in benign_path:
+        [TrainingData, TestingData] = MakeTrainTest(ProcessCSV_matlab(benign_path,malign_path), 0.9)
     else:
-        [TrainingData, TestingData] = MakeTrainTest(ProcessCSV(benign_path,malign_path) , 0.7)
+        [TrainingData, TestingData] = MakeTrainTest(ProcessCSV(benign_path,malign_path) , 0.9)
     OriginalTrainingData, OriginalTestingData = TrainingData.copy(), TestingData.copy()
     
     i = 0
     print("Iteration: ", i)
-    Values.append(ff.main(TrainingData, TestingData, elm_type, 6, activationFunction, seed, verbose, False))
+    Values.append(ff.main(TrainingData, TestingData, elm_type, 2, activationFunction, seed, verbose, False))
     while True:
         i+=1
         print("Iteration: ", i)
-        [TrainingData, TestingData] = MakeTrainTest(Values[i-1] , 0.7)
-        Values.append(ff.main(TrainingData, TestingData, elm_type, 6, activationFunction, seed, verbose, False ))
+        [TrainingData, TestingData] = MakeTrainTest(Values[i-1] , 0.9)
+        Values.append(ff.main(TrainingData, TestingData, elm_type, 2, activationFunction, seed, verbose, False ))
         
         #Condição de parada
-        if ff.get_accuracies()[-1][0] == 100.0 and ff.get_accuracies()[-1][1] == 100.0 or i == 6 :
+        if ff.get_accuracies()[-1][0] == 100.0 and ff.get_accuracies()[-1][1] == 100.0 or i == 30 :
             i+=1
             print(f'Iteration {i} with Original Training Data:')
-            Values.append(ff.main(OriginalTrainingData, OriginalTestingData, elm_type, 6*(i+1), activationFunction,
+            Values.append(ff.main(OriginalTrainingData, OriginalTestingData, elm_type, 2*(i+1), activationFunction,
                                     seed, verbose,  True))
             break
         

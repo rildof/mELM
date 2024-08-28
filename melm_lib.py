@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 from scipy import stats
 from plotly.subplots import make_subplots
-
+from collections import Counter
 import plotly.graph_objects as go
 
 
@@ -207,6 +207,16 @@ def ProcessCSV_matlab(Benign_address, Malign_address):
 
     return dSet.reset_index(drop=True)
 
+def get_all_modes(matrix):
+    # function that gets all modes from each column of a matrix
+    if type(matrix) == pd.DataFrame:
+        matrix = matrix.T.values.tolist()
+        modes = []
+        for c in matrix:
+            x = Counter(c).most_common()
+            x = [round(c[0],6) for c in x]
+            modes.append(x)
+        return modes
 
 def get_modes(matrix, num_of_modes):
     if type(matrix) == np.ndarray:
@@ -245,6 +255,99 @@ def get_modes(matrix, num_of_modes):
             modes.append(column_modes)
         return modes
 
+def get_weights(self, train_data:pd.DataFrame, classes):
+    classesValues = list()
+    for index, classLabel in enumerate(reversed(classes)):
+        classesValues.append(train_data.loc[train_data[0] == classLabel].reset_index(drop=True))
+        classesValues[index].drop(classesValues[index].columns[0], axis=1, inplace=True)
+    
+    train_data.drop(train_data.columns[0], axis=1, inplace=True)
+
+    general_minimum = train_data.min(axis=None) 
+    minimos = [c.min(axis=0) for c in classesValues]
+    breakpoint()
+    numberOfInputNeurons = classesValues[0].shape[1]
+    
+    def get_max(classValues:pd.DataFrame, general_minimum:float) -> list[list, float]:
+        inputMax = float
+        vectorInput = np.ndarray(classValues.shape[1])
+
+        for index in range(classValues.shape[1] - 1, -1, -1):
+            column = classValues.T.values[index]
+            #TODO: Implementar is_atomic (pra quando a coluna for atômica ou não)
+            if self.is_saturated(index, 1):
+                vectorInput[index] = general_minimum
+                continue
+            vectorInput[index] = round(stats.mode(column)[0], 6)
+
+        inputMax = max(vectorInput)
+        return vectorInput, inputMax
+
+    def pesos_xai_mode_auxiliar(self, vectorInput, inputMax, columnIndex, classIndex, count_vector):
+        if self.iteration == 0:
+            return vectorInput, inputMax, columnIndex, count_vector
+        modes = get_all_modes(train_data)
+        while True:
+            #Verifica se o valor máximo, entre todos os neurônios da
+            #classe, já está contido no referido neurônio de entrada.
+            if inputMax in np.array(self.weights).T[columnIndex]:
+                print('ja presente na coluna')
+                if self.is_saturated(columnIndex, classIndex):
+                    print('ja ta saturado')
+                    vectorInput[columnIndex] = general_minimum
+                    inputMax = max(vectorInput)
+                    #atualiza direto no inputWeight
+                    return vectorInput, inputMax, columnIndex, count_vector
+                
+                count_vector[columnIndex] = count_vector[columnIndex] + 1
+                breakpoint()
+                if count_vector[columnIndex] >= len(modes[columnIndex]):
+                    print('acabou de saturar')
+                    self.saturated_neurons[classIndex][columnIndex] = 1
+                    vectorInput[columnIndex] = general_minimum
+                    inputMax = max(vectorInput)
+
+                    if sum(self.saturated_neurons[classIndex]) >= numberOfInputNeurons:
+                        print('saturou toda a classe')
+                        columnIndex = 0
+                        vectorInput = []
+                        return vectorInput, inputMax, columnIndex, count_vector
+                    
+                    print('saturou parcial')
+                    columnIndex = numberOfInputNeurons
+                    return vectorInput, inputMax, columnIndex, count_vector
+                print('substituicao')
+                print('colunaModificada:', columnIndex)
+                print(f'valor antigo: {vectorInput[columnIndex]} novo valor: {modes[columnIndex][int(count_vector[columnIndex])]}')
+                vectorInput[columnIndex] = modes[columnIndex][int(count_vector[columnIndex])]
+                inputMax = max(vectorInput)
+                columnIndex = numberOfInputNeurons
+                #breakpoint()
+                #print(vectorInput)
+                return vectorInput, inputMax, columnIndex, count_vector
+
+            else: # A amostra é inédita
+                break
+
+        return vectorInput, inputMax, columnIndex, count_vector
+
+    classesWeights = list()
+    for index, classe in enumerate(classesValues): #TODO: Implementar o paralelismo # Para cada classe de valores(labels)
+        if sum(self.saturated_neurons[index]) == len(self.saturated_neurons[index]): break
+        
+        vectorInput, inputMax = get_max(classe, general_minimum)
+        ii = classe.shape[1] - 1
+        count_vector = np.zeros(numberOfInputNeurons)
+        while ii >= 0:
+            #if not self.is_saturated(ii, index):
+            [vectorInput, inputMax, ii, count_vector] =(
+                pesos_xai_mode_auxiliar(self, vectorInput, inputMax, ii, index, count_vector))
+            #else:
+            #    print('ii saturado:', ii)
+            ii -= 1
+        classesWeights.append(vectorInput)
+    print('pesos calculados')
+    return classesWeights
 def matprint(mat, fmt=".4f"):
     col_maxes = [max([len(("{:"+fmt+"}").format(x)) for x in col]) for col in mat.T]
     for x in mat:
@@ -439,7 +542,6 @@ def bytes_or(a, b) :
     for i in range(len(a1)):
         c[i] = a1[i] | b1[i]
     return c
-
 
 if __name__ == '__main__':
     pass
