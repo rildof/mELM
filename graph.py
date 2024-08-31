@@ -7,12 +7,13 @@ import plotly.graph_objects as go
 from scipy.stats import mode
 import time
 import copy
-def kernel_matrix_rildo(ActivationFunction, NumberofHiddenNeurons, NumberofTrainingData, InputWeight, P):
-    
+def kernel_matrix_rildo(ActivationFunction, InputWeight, BiasMatrix, P):
+    NumberofHiddenNeurons = InputWeight.shape[0]
+    NumberofTrainingData = P.shape[1]
     H = np.ones((NumberofHiddenNeurons, NumberofTrainingData))
     NumberofAtributos = InputWeight.shape[1]
     
-    if ActivationFunction.lower() in ['dil_classica', 'dilatacao_classica']:
+    if ActivationFunction.lower() in ['dil_classica', 'dilatacao_classica', 'dilation']:
         
         for i in range(NumberofHiddenNeurons):
             for j in range(NumberofTrainingData):
@@ -26,7 +27,7 @@ def kernel_matrix_rildo(ActivationFunction, NumberofHiddenNeurons, NumberofTrain
                         
                 H[i, j] = result
                 
-    elif ActivationFunction.lower() in ['ero_classica', 'erosao_classica']:
+    elif ActivationFunction.lower() in ['ero_classica', 'erosao_classica', 'erosion']:
         
         for i in range(NumberofHiddenNeurons):
             for j in range(NumberofTrainingData):
@@ -720,7 +721,7 @@ def elm_autoral_xai(classificador, Elm_Type, ActivationFunction,
 
     # Generate input weights and biases of hidden neurons
     BiasMatrix =  np.zeros((NumberofHiddenNeurons, 1))
-    H = switchActivationFunction(ActivationFunction, InputWeight, BiasMatrix,  P)
+    H = kernel_matrix_rildo(ActivationFunction, InputWeight, BiasMatrix,  P)
     # Calculate output weights (beta_i)
     OutputWeight = np.linalg.pinv(H.T) @ T.T
     Y = (H.T @ OutputWeight).T
@@ -731,7 +732,7 @@ def elm_autoral_xai(classificador, Elm_Type, ActivationFunction,
     # Calculate the output of testing input
     start_time_test = time.time()
     
-    H_test = switchActivationFunction(ActivationFunction, InputWeight, BiasMatrix,  TVP)
+    H_test = kernel_matrix_rildo(ActivationFunction, InputWeight, BiasMatrix,  TVP)
     TY = (H_test.T @ OutputWeight).T
     
     end_time_test = time.time()
@@ -1349,7 +1350,7 @@ def grafico_auxiliar_Rildo(author, ActivationFunction, pasta,
     NumberofHiddenNeurons = InputWeight.shape[0]
     BiasMatrix =  np.zeros((NumberofHiddenNeurons, 1))
     #----------------------------------------------------------------------
-    H = switchActivationFunction(ActivationFunction, InputWeight, BiasMatrix, P)
+    H = kernel_matrix_rildo(ActivationFunction, InputWeight, BiasMatrix, P)
     
     OutputWeight = np.linalg.pinv(H.T) @ T.T
     Y = (H.T @ OutputWeight).T  
@@ -1358,12 +1359,13 @@ def grafico_auxiliar_Rildo(author, ActivationFunction, pasta,
     acc = avaliarRedeTreino(Y, NumberofTrainingData, T)
     
     #----------------------------------------------------------------------
-    H_test = switchActivationFunction(ActivationFunction, InputWeight, BiasMatrix, TVP)
+    H_test = kernel_matrix_rildo(ActivationFunction, InputWeight, BiasMatrix, TVP)
     
     TY = (H_test.T @ OutputWeight).T   
-    
+    breakpoint()
     del H_test
     
+    #xx1, yy1, xx2, yy2 = avaliarRede(TY, TVP)
     xx1, yy1, xx2, yy2 = avaliarRede(TY, TVP)
     breakpoint()
     #----------------------------------------------------------------------
