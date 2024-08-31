@@ -334,7 +334,7 @@ def get_weights(self, train_data:pd.DataFrame, classes):
     classesWeights = list()
     for index, classe in enumerate(classesValues): #TODO: Implementar o paralelismo # Para cada classe de valores(labels)
         if sum(self.saturated_neurons[index]) == len(self.saturated_neurons[index]): break
-        
+
         vectorInput, inputMax = get_max(classe, general_minimum)
         ii = classe.shape[1] - 1
         count_vector = np.zeros(numberOfInputNeurons)
@@ -449,7 +449,8 @@ def erosion(w1, b1, samples):
     return H
 #========================================================================
 def dilation(w1, b1, samples):
-
+    if type(samples) == np.ndarray:
+        samples = pd.DataFrame(samples, columns=range(samples.shape[1]))
     H = np.zeros((np.size(w1,0), np.size(samples,1)))
     x = np.zeros(np.size(w1,1))
 
@@ -468,7 +469,7 @@ def fuzzy_erosion(w1, b1, samples):
     H = np.ones((np.size(w1,0), np.size(samples,1)))
 
     for s_index in range(np.size(samples,1)):
-        ss = samples.loc[:,s_index]
+        #ss = samples.loc[:,s_index]
         for i in range(np.size(w1,0)):
             H[i][s_index] = 1- tempH[i][s_index]
     return H
