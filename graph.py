@@ -57,7 +57,6 @@ def plotar(author, pasta, ActivationFunction, NumberofHiddenNeurons,
     fig.add_trace(go.Scatter(x=xx2, y=yy2, mode='markers',
                              marker=dict(size=5, color='red', symbol='circle'),
                              name='Class 2'))
-    breakpoint()
     # Plot training data points for benign and malignant
     x1 = entrada_benigno[:, 0]
     y1 = entrada_benigno[:, 1]
@@ -115,7 +114,6 @@ def plotar_Rildo(author, pasta, ActivationFunction, NumberofHiddenNeurons,
         marker=dict(symbol='circle', size=5, color='red'),
         name='Class 2'
     ))
-    breakpoint()
     # Encontrar os índices e filtrar entradas benignas e malignas
     indice_linhas_1 = np.where(InputWeightClass == 1)[0]
     x3 = InputWeight[indice_linhas_1, 0]
@@ -217,8 +215,8 @@ def pesos_xai_rildo(iteracao, NumberofInputNeurons, conjuntoTreinamento):
     conjuntoTreinamentoELM = conjuntoTreinamento
     features_atomico = np.ones(NumberofInputNeurons, dtype=np.float64)
     feature_saturation = np.zeros((2, NumberofInputNeurons), dtype=np.float64)
-    InputWeight = np.empty((classes, NumberofInputNeurons), dtype=np.float64)
-    InputWeightClass = np.empty((classes), dtype=np.float64)
+    InputWeight = np.zeros((classes, NumberofInputNeurons), dtype=np.float64)
+    InputWeightClass = np.zeros((classes), dtype=np.float64)
     nivel = 0
     count_nivel = 1
 
@@ -253,6 +251,13 @@ def pesos_xai_rildo(iteracao, NumberofInputNeurons, conjuntoTreinamento):
             print('cima saturou')
             break
 
+    
+    InputWeight = np.vstack((InputWeight[np.where(InputWeightClass == 1)], 
+                                       InputWeight[np.where(InputWeightClass == 2)]))
+    breakpoint()
+    InputWeightClass = np.concatenate((InputWeightClass[np.where(InputWeightClass == 1)], 
+                                       InputWeightClass[np.where(InputWeightClass == 2)]))
+    
     return InputWeight, InputWeightClass
 
 def pesos_xai_auxiliar(nivel, InputWeightTotal, InputWeightClass, feature_saturation, 
@@ -270,6 +275,7 @@ def pesos_xai_auxiliar(nivel, InputWeightTotal, InputWeightClass, feature_satura
         min_entrada_benigno = np.min(entrada_benigno[:, 1:], axis=0); has_benign = True
     else:
         min_entrada_benigno = np.zeros(NumberofInputNeurons, dtype=np.float64)
+
     if len(entrada_maligno != 0): 
         min_entrada_maligno = np.min(entrada_maligno[:, 1:], axis=0); has_malign = True
     else:
@@ -297,13 +303,19 @@ def pesos_xai_auxiliar(nivel, InputWeightTotal, InputWeightClass, feature_satura
                 pesos_xai_classe_por_classe(nivel, InputWeightTotal, InputWeightClass, 
                                             feature_saturation, NumberofInputNeurons, 
                                             entrada_benigno, classe, count_nivel, min_entrada)
+            
+            if InputWeightClass[-1] == 0 and nivel > 1:
+                #Remove all added zeros in InputWeightTotal and InputWeightClass
+                InputWeightTotal = InputWeightTotal[:-1]
+                InputWeightClass = InputWeightClass[:-1]
 
         print('&&&&&&&&&&&&&&&')
         #print('Benigno:')
         print('InputWeightTotal:', InputWeightTotal)
         print('Entrada maligno:', entrada_maligno)
-        classe += 1
+        
         if has_malign:
+            classe += 1
             InputWeightTotal = np.vstack((InputWeightTotal,
                                 np.zeros((1, NumberofInputNeurons), dtype=np.float64) ) )
             InputWeightClass = np.append(InputWeightClass,[0])
@@ -312,19 +324,28 @@ def pesos_xai_auxiliar(nivel, InputWeightTotal, InputWeightClass, feature_satura
                 pesos_xai_classe_por_classe(nivel, InputWeightTotal, InputWeightClass, 
                                             feature_saturation, NumberofInputNeurons, 
                                             entrada_maligno, classe, count_nivel, min_entrada)
+            if InputWeightClass[-1] == 0 and nivel > 1:
+                #Remove all added zeros in InputWeightTotal and InputWeightClass
+                InputWeightTotal = InputWeightTotal[:-1]
+                InputWeightClass = InputWeightClass[:-1]
     else:
         classe = 2
         if has_malign:
             InputWeightTotal = np.vstack((InputWeightTotal,
                                 np.zeros((1, NumberofInputNeurons), dtype=np.float64) ) )
             InputWeightClass = np.append(InputWeightClass,[0])
-
+            
             InputWeightTotal, InputWeightClass, feature_saturation, count_nivel = \
                 pesos_xai_classe_por_classe(nivel, InputWeightTotal, InputWeightClass, 
                                             feature_saturation, NumberofInputNeurons, 
                                             entrada_maligno, classe, count_nivel, min_entrada)
-        classe -=1
+            if InputWeightClass[-1] == 0 and nivel > 1:
+                #Remove all added zeros in InputWeightTotal and InputWeightClass
+                InputWeightTotal = InputWeightTotal[:-1]
+                InputWeightClass = InputWeightClass[:-1]
+        
         if has_benign:
+            classe -=1
             InputWeightTotal = np.vstack((InputWeightTotal,
                                 np.zeros((1, NumberofInputNeurons), dtype=np.float64) ) )
             InputWeightClass = np.append(InputWeightClass,[0])
@@ -333,12 +354,14 @@ def pesos_xai_auxiliar(nivel, InputWeightTotal, InputWeightClass, feature_satura
                 pesos_xai_classe_por_classe(nivel, InputWeightTotal, InputWeightClass, 
                                             feature_saturation, NumberofInputNeurons, 
                                             entrada_benigno, classe, count_nivel, min_entrada)
-            
+            if InputWeightClass[-1] == 0 and nivel > 1:
+                #Remove all added zeros in InputWeightTotal and InputWeightClass
+                InputWeightTotal = InputWeightTotal[:-1]
+                InputWeightClass = InputWeightClass[:-1]
+
     print('InputWeightTotal:', InputWeightTotal)
     print('Feature saturation:', feature_saturation)
-
-    # Para aguardar uma interação do usuário como no MATLAB 'waitforbuttonpress'
-    #input("Pressione qualquer tecla para continuar...")
+    # Reordenando para que os primeiros pesos sejam da classe e o segundo peso da contra-classe
 
     return InputWeightTotal, InputWeightClass, feature_saturation, count_nivel
 
@@ -809,17 +832,16 @@ def avaliarRedeTreino(Y, NumberofTestingData, T):
 
     # Count the number of misclassifications
     classificacoesErradas = np.sum(nodoVencedorRede != nodoVencedorDesejado)
-
+    wrongIndexes = np.where(nodoVencedorRede != nodoVencedorDesejado)
     # Calculate accuracy
     accuracy = 1 - (classificacoesErradas / NumberofTestingData)
     accuracy = round(accuracy * 100, 2)
     
-    return accuracy
+    return accuracy, wrongIndexes
 
 def avaliarRede(TY, TVP):
     # Encontra o valor máximo e o índice do vencedor
     nodoVencedorRede = np.argmax(TY, axis=0)
-    breakpoint()
     x1 = []
     y1 = []
     x2 = []
@@ -995,9 +1017,9 @@ def eliminar_partes(yy, xx, perc):
     
     return yy, xx
 
-def distribuicao(dist):
+def distribuicao(dist, num_amostras):
     # Definindo o número de amostras
-    num_amostras = 40
+    num_amostras = 100
     
     if dist == 'sine':
         x1 = np.arange(-2 * np.pi, 2 * np.pi, 0.4)
@@ -1356,18 +1378,15 @@ def grafico_auxiliar_Rildo(author, ActivationFunction, pasta,
     Y = (H.T @ OutputWeight).T  
     del H
     
-    acc = avaliarRedeTreino(Y, NumberofTrainingData, T)
-    
+    acc, wrongIndexes = avaliarRedeTreino(Y, NumberofTrainingData, T)
+    print(P[:,wrongIndexes].T)
     #----------------------------------------------------------------------
     H_test = kernel_matrix_rildo(ActivationFunction, InputWeight, BiasMatrix, TVP)
     
     TY = (H_test.T @ OutputWeight).T   
-    breakpoint()
     del H_test
     
-    #xx1, yy1, xx2, yy2 = avaliarRede(TY, TVP)
     xx1, yy1, xx2, yy2 = avaliarRede(TY, TVP)
-    breakpoint()
     #----------------------------------------------------------------------
     plotar_Rildo(author, pasta, ActivationFunction, NumberofHiddenNeurons,
                  InputWeight, InputWeightClass,
@@ -1388,7 +1407,7 @@ def grafico_auxiliar(author, ActivationFunction, pasta, NumberofHiddenNeurons,
     del H  # Clear H to save memory
 
     # Evaluate the training network
-    acc = avaliarRedeTreino(Y, NumberofTrainingData, T)
+    acc, wrongIndexes = avaliarRedeTreino(Y, NumberofTrainingData, T)
 
     # Calculate the hidden layer output matrix for the test data (H_test)
     H_test = switchActivationFunction(ActivationFunction, InputWeight, BiasofHiddenNeurons, TVP)
@@ -1438,7 +1457,7 @@ def grafico_nohidden_auxiliar(author, pasta, ActivationFunction, NumberofHiddenN
         Y = np.dot(H.T, OutputWeight).T
     
     # Avalia a rede de treinamento
-    acc = avaliarRedeTreino(Y, NumberofTrainingData, T)
+    acc, wrongIndexes = avaliarRedeTreino(Y, NumberofTrainingData, T)
     
     # Calcula a matriz tempH_test
     tempH_test = np.dot(InputWeight, TVP)
@@ -1467,16 +1486,16 @@ def grafico_nohidden_auxiliar(author, pasta, ActivationFunction, NumberofHiddenN
     plotar(author, pasta, ActivationFunction, NumberofHiddenNeurons,
            entrada_benigno, entrada_maligno, xx1, yy1, xx2, yy2, acc)
 
-def grafico_xai():
+def grafico_xai(num_amostras):
     NumberofHiddenNeurons = 100
     #grafico_xai_inter('sigmoid', NumberofHiddenNeurons)
-    grafico_xai_inter('linear', NumberofHiddenNeurons)
+    #grafico_xai_inter('linear', NumberofHiddenNeurons)
     #grafico_xai_inter('radbas', NumberofHiddenNeurons)
-    #grafico_xai_inter('sine', NumberofHiddenNeurons)
+    grafico_xai_inter('sine', NumberofHiddenNeurons,num_amostras)
 
-def grafico_xai_inter(kernel, NumberofHiddenNeurons):
+def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
 
-    [x1, y1, x2, y2, x11, y11, x22, y22] = distribuicao_alt(kernel)
+    [x1, y1, x2, y2, x11, y11, x22, y22] = distribuicao(kernel,num_amostras)
     iteracao = 1
     NumberofInputNeurons = 2
     # Stack arrays vertically (equivalent to MATLAB's vertcat)
@@ -1525,8 +1544,8 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons):
     maxP2 = np.max(P[1, :])
 
     # Create vectors using linspace
-    vetora = np.linspace(minP1, maxP1, 160)
-    vetorb = np.linspace(minP2, maxP2, 80)
+    vetora = np.linspace(minP1, maxP1, int(num_amostras*3.2))
+    vetorb = np.linspace(minP2, maxP2, int(num_amostras*1.6))
 
     # Create the combinatorial matrix similar to combvec in MATLAB
     TVP = np.array(list(product(vetora, vetorb))).T
@@ -1567,4 +1586,5 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons):
                          benignInput, malignInput)
     
 
-x = grafico_xai()
+num_amostras = 40
+x = grafico_xai(num_amostras)
