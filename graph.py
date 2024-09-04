@@ -7,12 +7,12 @@ import plotly.graph_objects as go
 from scipy.stats import mode
 import time
 import copy
+from sklearn.datasets import make_classification
 def kernel_matrix_rildo(ActivationFunction, InputWeight, BiasMatrix, P):
     NumberofHiddenNeurons = InputWeight.shape[0]
     NumberofTrainingData = P.shape[1]
     H = np.ones((NumberofHiddenNeurons, NumberofTrainingData))
     NumberofAtributos = InputWeight.shape[1]
-    
     if ActivationFunction.lower() in ['dil_classica', 'dilatacao_classica', 'dilation']:
         
         for i in range(NumberofHiddenNeurons):
@@ -254,7 +254,6 @@ def pesos_xai_rildo(iteracao, NumberofInputNeurons, conjuntoTreinamento):
     
     InputWeight = np.vstack((InputWeight[np.where(InputWeightClass == 1)], 
                                        InputWeight[np.where(InputWeightClass == 2)]))
-    breakpoint()
     InputWeightClass = np.concatenate((InputWeightClass[np.where(InputWeightClass == 1)], 
                                        InputWeightClass[np.where(InputWeightClass == 2)]))
     
@@ -1106,6 +1105,25 @@ def distribuicao(dist, num_amostras):
     
     return x1, y1, x2, y2, x11, y11, x22, y22
 
+def create_classification_data(num_samples=100, num_features=10, random_state=42):
+    # Criando o dataset de classificação com 10 features e 2 classes (benign e malign)
+    num_samples = num_samples*2
+    X, y = make_classification(n_samples=num_samples, n_features=num_features, 
+                               n_informative=5, n_redundant=2, n_clusters_per_class=1,
+                               n_classes=2, flip_y=0.01, random_state=random_state)
+    
+    # Transformando as classes 0 e 1 em 'benign' e 'malign'
+    y = np.where(y == 0, 'benign', 'malign')
+    benignInput = X[y == 'benign']
+    benignTest = X[y == 'benign']
+    benignInput, benignTest = benignInput[:num_samples//2], benignTest[num_samples//2:]
+    malignInput = X[y == 'malign']
+    malignTest = X[y == 'malign']
+    malignInput, malignTest = malignInput[:num_samples//2], malignTest[num_samples//2:]
+
+    return benignInput, malignInput, benignTest, malignTest
+
+
 def distribuicao_alt(dist):
     if dist == 'sine':
         pass
@@ -1372,6 +1390,7 @@ def grafico_auxiliar_Rildo(author, ActivationFunction, pasta,
     NumberofHiddenNeurons = InputWeight.shape[0]
     BiasMatrix =  np.zeros((NumberofHiddenNeurons, 1))
     #----------------------------------------------------------------------
+
     H = kernel_matrix_rildo(ActivationFunction, InputWeight, BiasMatrix, P)
     
     OutputWeight = np.linalg.pinv(H.T) @ T.T
@@ -1380,7 +1399,7 @@ def grafico_auxiliar_Rildo(author, ActivationFunction, pasta,
     
     acc, wrongIndexes = avaliarRedeTreino(Y, NumberofTrainingData, T)
     print(P[:,wrongIndexes].T)
-    #----------------------------------------------------------------------
+
     H_test = kernel_matrix_rildo(ActivationFunction, InputWeight, BiasMatrix, TVP)
     
     TY = (H_test.T @ OutputWeight).T   
@@ -1492,23 +1511,32 @@ def grafico_xai(num_amostras):
     #grafico_xai_inter('linear', NumberofHiddenNeurons)
     #grafico_xai_inter('radbas', NumberofHiddenNeurons)
     grafico_xai_inter('sine', NumberofHiddenNeurons,num_amostras)
+    #grafico_xai_inter('authoral', NumberofHiddenNeurons,num_amostras)
+    
+
 
 def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
+    if kernel != "authoral":
+        [x1, y1, x2, y2, x11, y11, x22, y22] = distribuicao(kernel,num_amostras)
+        iteracao = 1
+        NumberofInputNeurons = 2
+        # Stack arrays vertically (equivalent to MATLAB's vertcat)
+        tempa = np.vstack((x1, x11))
+        tempb = np.vstack((y1, y11))
+        # Stack arrays horizontally (equivalent to MATLAB's horzcat)
+        benignInput = np.hstack((tempa, tempb))
 
-    [x1, y1, x2, y2, x11, y11, x22, y22] = distribuicao(kernel,num_amostras)
-    iteracao = 1
-    NumberofInputNeurons = 2
-    # Stack arrays vertically (equivalent to MATLAB's vertcat)
-    tempa = np.vstack((x1, x11))
-    tempb = np.vstack((y1, y11))
-    # Stack arrays horizontally (equivalent to MATLAB's horzcat)
-    benignInput = np.hstack((tempa, tempb))
-
-    tempa = np.vstack((x2, x22))
-    tempb = np.vstack((y2, y22))
-    malignInput = np.hstack((tempa, tempb))
-    # Stack benigno and maligno entries vertically and transpose (equivalent to vertcat and transpose)
-    P = np.vstack((benignInput, malignInput)).T
+        tempa = np.vstack((x2, x22))
+        tempb = np.vstack((y2, y22))
+        malignInput = np.hstack((tempa, tempb))
+        # Stack benigno and maligno entries vertically and transpose (equivalent to vertcat and transpose)
+        P = np.vstack((benignInput, malignInput)).T
+    elif kernel == 'authoral':
+        benignInput, malignInput, benignTest, malignTest = create_classification_data(num_samples=num_amostras)
+        iteracao = 1
+        NumberofInputNeurons = benignInput.shape[1]
+        P = np.vstack((benignInput, malignInput))   
+        TP = np.vstack((benignTest, malignTest))
     #Pesos para as execuções padrão
     InputWeight, BiasofHiddenNeurons = pesos(iteracao, NumberofHiddenNeurons, NumberofInputNeurons)
 
@@ -1538,18 +1566,42 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
     T[0, benignInput.shape[0]:] = -1
 
     # Calculate minimum and maximum values for P
-    minP1 = np.min(P[0, :])
-    maxP1 = np.max(P[0, :])
-    minP2 = np.min(P[1, :])
-    maxP2 = np.max(P[1, :])
+    if kernel != "authoral":
+        minP1 = np.min(P[0, :])
+        maxP1 = np.max(P[0, :])
+        minP2 = np.min(P[1, :])
+        maxP2 = np.max(P[1, :])
+        # Create vectors using linspace
+        vetora = np.linspace(minP1, maxP1, int(num_amostras*3.2))
+        vetorb = np.linspace(minP2, maxP2, int(num_amostras*1.6))
+        # Create the combinatorial matrix similar to combvec in MATLAB
+        TVP = np.array(list(product(vetora, vetorb))).T
+    else:
+        if False: #don't
+            minPs = np.min(P, axis=1)
+            maxPs = np.max(P, axis=1)
+            #vectors = np.linspace(minPs, maxPs, num_amostras)
+            #FOR RILDO TVP
+            corr_df = pd.DataFrame(columns=['r', 'p-value'])
+            InputWeightsCalc = InputWeight_xai_Rildo
+            #Add InputWeightClass to the InputWeightsCalc, in column 0
+            InputWeightsCalc = np.insert(InputWeightsCalc, 0, InputWeightClass, axis=1)
+            for col in range(InputWeightsCalc.shape[1]):
+                if pd.api.types.is_numeric_dtype(InputWeightsCalc[col]):
+                    r, p = stats.pearsonr(InputWeightsCalc[0], InputWeightsCalc[col])
+                    corr_df.loc[col] = [round(r, 3), round(p, 3)]
+            indices = sorted(corr_df['p-value'].items(), key=lambda x: x[1])[1:]
+            chosenIndices = [index for index, _ in indices] #always only two indices
+            #vetora = np.linspace(minPs[int(chosenIndices[0])], maxPs[int(chosenIndices[0])], int(num_amostras*3.2))
+            #vetorb = np.linspace(minPs[int(chosenIndices[1])], maxPs[int(chosenIndices[1])], int(num_amostras*1.6))
+            vectors = np.linspace(minPs, maxPs, num_amostras)
+        else:
+            TVP = TP.T
 
-    # Create vectors using linspace
-    vetora = np.linspace(minP1, maxP1, int(num_amostras*3.2))
-    vetorb = np.linspace(minP2, maxP2, int(num_amostras*1.6))
-
-    # Create the combinatorial matrix similar to combvec in MATLAB
-    TVP = np.array(list(product(vetora, vetorb))).T
-
+    #make TVP including all indices in chosenIndices product
+    #TVP = np.array(list(product(*vectors[chosenIndices]))).T
+    
+    breakpoint()
     NumberofTestingData = TVP.shape[1]
     NumberofTrainingData = P.shape[1]
 
@@ -1586,5 +1638,5 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
                          benignInput, malignInput)
     
 
-num_amostras = 40
+num_amostras =  70
 x = grafico_xai(num_amostras)
