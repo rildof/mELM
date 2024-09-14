@@ -127,7 +127,7 @@ class melm():
 		if verbose: print ('Calculate the training accuracy')
 		#%%%%%%%%%%% Calculate the training accuracy
 		Y = np.transpose(np.dot(np.transpose(H), OutputWeight))                     #%   Y: the actual output of the training data
-
+		breakpoint()
 		TrainingAccuracy = 0
 		if Elm_Type == self.REGRESSION:        
 			if verbose: print ('Calculate training accuracy (RMSE) for regression case')  

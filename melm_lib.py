@@ -449,18 +449,36 @@ def erosion(w1, b1, samples):
     return H
 #========================================================================
 def dilation(w1, b1, samples):
-    if type(samples) == np.ndarray:
-        samples = pd.DataFrame(samples, columns=range(samples.shape[1]))
-    H = np.zeros((np.size(w1,0), np.size(samples,1)))
-    x = np.zeros(np.size(w1,1))
+    
+    if True:
+        if type(samples) == np.ndarray:
+            samples = pd.DataFrame(samples, columns=range(samples.shape[1]))
+        H = np.zeros((np.size(w1,0), np.size(samples,1)))
+        x = np.zeros(np.size(w1,1))
 
-    for s_index in range(np.size(samples,1)):
-        ss = samples.loc[:,s_index]
-        for i in range(np.size(w1,0)):
-            for j in range(np.size(w1,1)):
-                x[j] = min(ss.loc[j], w1[i][j])
-            H[i][s_index] = max(x)+ b1[i][0]
-
+        for s_index in range(np.size(samples,1)):
+            ss = samples.loc[:,s_index]
+            for i in range(np.size(w1,0)):
+                for j in range(np.size(w1,1)):
+                    x[j] = min(ss.loc[j], w1[i][j])
+                H[i][s_index] = max(x)+ b1[i][0]
+    else:
+        NumberofHiddenNeurons = w1.shape[0]
+        NumberofTrainingData = samples.shape[1]
+        H = np.ones((NumberofHiddenNeurons, NumberofTrainingData))
+        NumberofAtributos = w1.shape[1]
+        if True:   
+            for i in range(NumberofHiddenNeurons):
+                for j in range(NumberofTrainingData):
+                    result = min(w1[i, 0], samples[0, j])
+                    
+                    for k in range(1, NumberofAtributos):
+                        temp = min(w1[i, k], samples[k, j])
+                        
+                        if temp > result:
+                            result = temp
+                            
+                    H[i, j] = result
     return H
 #========================================================================
 def fuzzy_erosion(w1, b1, samples):
