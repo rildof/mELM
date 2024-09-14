@@ -166,8 +166,8 @@ class melm():
 			label_index_actual = np.argmax(Y, axis=0)   # Maxima along the second axis
 						
 			for i in range(0, np.size(label_index_expected,0)):
-        			if label_index_actual[i]!=label_index_expected[i]:
-            				MissClassificationRate_Training=MissClassificationRate_Training+1
+				if label_index_actual[i]!=label_index_expected[i]:
+						MissClassificationRate_Training=MissClassificationRate_Training+1
 
 			TrainingAccuracy = 1 - MissClassificationRate_Training / np.size(label_index_expected, 0)
 			TrainingAccuracy = round(TrainingAccuracy, 6) 
@@ -178,9 +178,9 @@ class melm():
 
 			for i in range(0, np.size(label_index_expected,0)):
 				if label_index_actual[i]!=label_index_expected[i]:
-            				MissClassificationRate_Testing=MissClassificationRate_Testing+1
-
+					MissClassificationRate_Testing=MissClassificationRate_Testing+1
 			TestingAccuracy = 1 - MissClassificationRate_Testing / np.size(label_index_expected, 0)
+			
 			TestingAccuracy = round(TestingAccuracy, 6) 
 			print('Testing Accuracy: ' + str(TestingAccuracy*100)+' % (',str(np.size(label_index_expected,0)-MissClassificationRate_Testing),'/',str(np.size(label_index_expected,0)),') (classification)')
 			
