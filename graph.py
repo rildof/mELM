@@ -253,7 +253,6 @@ def plotar_Rildo(author, pasta, ActivationFunction, NumberofHiddenNeurons,
     #fig.write_image(f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png')
     pio.write_image(fig, f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png',scale=2, width=864, height=720)
 
-
 def pesos(iteracao, NumberofHiddenNeurons, NumberofInputNeurons):
     # Set the seed for reproducibility
     np.random.seed(iteracao)
@@ -1171,9 +1170,6 @@ def distribuicao(dist, num_amostras):
     y22 = dime(y22)
 
     return x1, y1, x2, y2, x11, y11, x22, y22
-
-
-
 
 def dime(arr):
     return arr.reshape(-1, 1) if arr.ndim == 1 else arr
@@ -4454,6 +4450,8 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
         P = np.vstack((benignInput, malignInput))   
         TP = np.vstack((benignTest, malignTest))
     
+    print(NumberofInputNeurons)
+    breakpoint()
     #Pesos para as execuções padrão
     InputWeight, BiasofHiddenNeurons = pesos(iteracao, NumberofHiddenNeurons, NumberofInputNeurons)
 
