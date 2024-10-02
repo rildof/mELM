@@ -4287,10 +4287,10 @@ def grafico_nohidden_auxiliar(author, pasta, ActivationFunction, NumberofHiddenN
 
 def grafico_xai(num_amostras):
     NumberofHiddenNeurons = 100
-    grafico_xai_inter('sigmoid', NumberofHiddenNeurons, num_amostras)
+    #grafico_xai_inter('sigmoid', NumberofHiddenNeurons, num_amostras)
     grafico_xai_inter('linear', NumberofHiddenNeurons, num_amostras)
-    grafico_xai_inter('radbas', NumberofHiddenNeurons, num_amostras)
-    grafico_xai_inter('sine', NumberofHiddenNeurons,num_amostras)
+    #grafico_xai_inter('radbas', NumberofHiddenNeurons, num_amostras)
+    #grafico_xai_inter('sine', NumberofHiddenNeurons,num_amostras)
     #grafico_xai_inter('authoral', NumberofHiddenNeurons,num_amostras)
     #grafico_xai_inter('antivirus', NumberofHiddenNeurons,num_amostras)
     
@@ -4448,7 +4448,7 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
         iteracao = 1
         NumberofInputNeurons = benignInput.shape[1]
         P = np.vstack((benignInput, malignInput))   
-        TP = np.vstack((benignTest, malignTest))
+        TVP = np.vstack((benignTest, malignTest))
     
     print(NumberofInputNeurons)
     breakpoint()
@@ -4476,10 +4476,10 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
     # Initialize T with ones
     T = np.ones((2, P.shape[1]))
 
-    # Set values in T based on the condition
+    # Set benign values to -1
     T[1, :benignInput.shape[0]] = -1
     T[0, benignInput.shape[0]:] = -1
-
+    breakpoint()
     # Calculate minimum and maximum values for P
     if kernel != "authoral":
         minP1 = np.min(P[0, :])
@@ -4511,7 +4511,7 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
             #vetorb = np.linspace(minPs[int(chosenIndices[1])], maxPs[int(chosenIndices[1])], int(num_amostras*1.6))
             vectors = np.linspace(minPs, maxPs, num_amostras)
         else:
-            TVP = TP.T
+            TVP = TVP.T
 
     #make TVP including all indices in chosenIndices product
     #TVP = np.array(list(product(*vectors[chosenIndices]))).T

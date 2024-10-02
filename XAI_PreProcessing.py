@@ -13,34 +13,70 @@ import random
 
 
 class DataProcessing:
-    def __init__(self, benign_input, malign_input):
-        self.benign_input = benign_input
-        self.malign_input = malign_input
-        pass
+    def __init__(self, benign_path=None, malign_path=None):
+        self.benign_path = benign_path
+        self.malign_path = malign_path
+        self.NumberofTrainingData = 0
+        self.NumberofOutputNeurons = 0
 
 
-    def create_dataset(self, benign_input=None, malign_input=None):
+    def create_dataset(self, *args):
         """Junta os conjuntos de dados benigno e maligno em um único conjunto de dados"""
-        if benign_input is None or malign_input is None:
-            benign_input = self.benign_input
-            malign_input = self.malign_input
-        entrada_benigno_Rildo = copy.deepcopy(benign_input)
-        entrada_maligno_Rildo = copy.deepcopy(malign_input)
+        args = list(args)
+        if len(args) < 2:
+            if (self.benign_path != None and self.malign_path != None):
+                args = [self.benign_path, self.malign_path]
+            else:
+                raise ValueError("Os caminhos para os conjuntos de dados benigno e maligno devem ser fornecidos.")
 
-        #insert value of 1 in the first column of the benigno matrix
-        entrada_benigno_Rildo = np.insert(entrada_benigno_Rildo, 0, 1, axis=1)
-        #insert value of 2 in the first column of the maligno matrix
-        entrada_maligno_Rildo = np.insert(entrada_maligno_Rildo, 0, 2, axis=1)
+            
+        labels = []
+        for index, ar in enumerate(args):
+            args[index] = np.insert(ar, 0, index+1, axis=1)
+            labels.append(index+1)
+        
 
-        conjuntoTreinamento = np.vstack((entrada_maligno_Rildo, entrada_benigno_Rildo))
+        conjuntoTreinamento = np.vstack((args[0], args[1]))
+        for i in range(2, len(args)):
+            conjuntoTreinamento = np.vstack((conjuntoTreinamento, args[i]))
+        
+        NumberofOutputNeurons = len(labels)
+        NumberofTrainingData = conjuntoTreinamento.shape[0]
+        
+        P = conjuntoTreinamento.T
+        #breakpoint()
+        # Initialize T with ones
+        T = conjuntoTreinamento[:, 0]
+        temp_T=np.zeros((NumberofOutputNeurons, NumberofTrainingData))
+            
+        for i in range(0, NumberofTrainingData): # Para cada amostra
+            for j in range(0, NumberofOutputNeurons): # Para cada classe
+                if labels[j] == T[i]: #Se a label estiver dentro das labels da base de dados
+                    break
+            temp_T[j][i]=1
+        T=temp_T*2-1
+        breakpoint()
 
-        return conjuntoTreinamento
+        minP1 = np.min(P[0, :])
+        maxP1 = np.max(P[0, :])
+        minP2 = np.min(P[1, :])
+        maxP2 = np.max(P[1, :])
+        # Create vectors using linspace
+        vetora = np.linspace(minP1, maxP1, int(160))
+        vetorb = np.linspace(minP2, maxP2, int(80))
+        # Create the combinatorial matrix similar to combvec in MATLAB
+        TVP = np.array(list(product(vetora, vetorb))).T
+        # T se transforma em uma matriz 2xN, onde N é o número de amostras
+        # linha 0: se for 1, é da classe 1, se for -1, é classe 0
+        # linha 1: se for 1, é da classe 0, se for -1, é classe 1
+
+        return conjuntoTreinamento, T, P, TVP
 
 
-    def get_sample_datasets(self, kernel, num_amostras):
+    def get_sample_datasets(self, kernel):
         """Retorna os conjuntos de dados de amostra para os kernels 'dilatacao_classica' e 'antivirus'"""
 
-        def data_from_matlab(self, kernel):
+        def data_from_matlab(kernel):
             if kernel == 'sigmoid':
                 string = """x1 =
 
@@ -2702,26 +2738,11 @@ class DataProcessing:
             tempa = np.vstack((x2, x22))
             tempb = np.vstack((y2, y22))
             malignInput = np.hstack((tempa, tempb))
-            return self.create_dataset(benignInput, malignInput)
+            return benignInput, malignInput
 
         if kernel in ['sigmoid', 'radbas', 'linear', 'sine']:
-            #[x1, y1, x2, y2, x11, y11, x22, y22] = distribuicao(kernel,num_amostras)
-            [x1,y1,x2,y2,x11,y11,x22,y22] = data_from_matlab(kernel)
-            iteracao = 1
-            NumberofInputNeurons = 2
-            # Stack arrays vertically (equivalent to MATLAB's vertcat)
-            tempa = np.vstack((x1, x11))
-            tempb = np.vstack((y1, y11))
-            # Stack arrays horizontally (equivalent to MATLAB's horzcat)
-            benignInput = np.hstack((tempa, tempb))
+            benignInput, malignInput = data_from_matlab(kernel)
 
-            tempa = np.vstack((x2, x22))
-            tempb = np.vstack((y2, y22))
-            malignInput = np.hstack((tempa, tempb))
-
-        elif kernel == 'authoral':
-            benignInput, malignInput, benignTest, malignTest = create_classification_data(num_samples=num_amostras)
-        
         else:
             raise ValueError('Kernel não implementado. Opções disponíveis: sigmoid, radbas, linear, sine, authoral')
         
@@ -2882,28 +2903,26 @@ class DataProcessing:
         return self.create_dataset(benignInput, malignInput)
 
 
-    def get_dataset_scikit(self, num_samples=100, num_features=10, seed=42):
+    def get_dataset_scikit(self, num_samples=100, num_features=10, num_classes=2, seed=42):
         
         # Criando o dataset de classificação com 10 features e 2 classes (benign e malign)
-        num_samples = num_samples*2
+        num_samples = num_samples
         X, y = make_classification(n_samples=num_samples, n_features=num_features, 
                                 n_informative=5, n_redundant=2, n_clusters_per_class=1,
-                                n_classes=2, flip_y=0.01, random_state=seed)
+                                n_classes=num_classes, flip_y=0.01, random_state=seed)
         
         # Transformando as classes 0 e 1 em 'benign' e 'malign'
-        y = np.where(y == 0, 'benign', 'malign')
-        benignInput = X[y == 'benign']
-        benignTest = X[y == 'benign']
-        benignInput, benignTest = benignInput[:num_samples//2], benignTest[num_samples//2:]
-        malignInput = X[y == 'malign']
-        malignTest = X[y == 'malign']
-        malignInput, malignTest = malignInput[:num_samples//2], malignTest[num_samples//2:]
+        labels = list(set(sorted(y)))
+        args = []
+        for label in labels:
+            args.append(X[np.where(y == label)[0]])
+        breakpoint()
+        
 
-        return self.create_dataset(benignInput, malignInput)
+        return self.create_dataset(*args)
     
 
-    def create_multiple_class_dataset(self, *args):
-        raise NotImplementedError('Função não implementada para múltiplas classes')
-        benignInput = np.vstack([arg[0] for arg in args])
-        malignInput = np.vstack([arg[1] for arg in args])
-        return self.create_dataset(benignInput, malignInput)
+
+if __name__ == '__main__':
+    dataProcess = DataProcessing()
+    conjuntoTreinamento, T, P, TVP = dataProcess.get_dataset_scikit(100,10,3,42)

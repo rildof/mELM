@@ -16,15 +16,18 @@ def main(benign_path=None, malign_path=None):
 
     # Calculate Weights
     weight_factory = IterativeWeights(dataset, 100)
-    weights_xai = weight_factory.get_xai_weights()
+    #weights_xai = weight_factory.get_xai_weights()
     weights_elm = weight_factory.get_random_weights(NumberofHiddenNeurons=100)
 
     # Run XAI algorithm
     xai = XAI(dataset)
-    xai.run_xai_elm()
+    #xai.run_xai_elm()
 
     # Run traditional ELM algorithm
-    xai.run_traditional_elm(50, 'dilation')
+    xai.run_traditional_elm(
+        weights= weights_elm, 
+        NumberofHiddenNeurons= 50,
+        ActivationFunction= 'dilation')
 
     # Plot the data
     plotter = Plotter()
