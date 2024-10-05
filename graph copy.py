@@ -781,10 +781,10 @@ def grafico_nohidden_auxiliar(author, pasta, ActivationFunction, NumberofHiddenN
 def grafico_xai(num_amostras, *args):
     NumberofHiddenNeurons = 100
     if 'sigmoid' in args: grafico_xai_inter('sigmoid', NumberofHiddenNeurons, num_amostras)
-    if 'linear' in args: grafico_xai_inter('linear', NumberofHiddenNeurons, num_amostras)
-    if 'radbas' in args: grafico_xai_inter('radbas', NumberofHiddenNeurons, num_amostras)
-    if 'sine' in args: grafico_xai_inter('sine', NumberofHiddenNeurons,num_amostras)
-    print(args)
+    elif 'linear' in args: grafico_xai_inter('linear', NumberofHiddenNeurons, num_amostras)
+    elif 'radbas' in args: grafico_xai_inter('radbas', NumberofHiddenNeurons, num_amostras)
+    elif 'sine' in args: grafico_xai_inter('sine', NumberofHiddenNeurons,num_amostras)
+
     #grafico_xai_inter('authoral', NumberofHiddenNeurons,num_amostras)
     #grafico_xai_inter('antivirus', NumberofHiddenNeurons,num_amostras)
     

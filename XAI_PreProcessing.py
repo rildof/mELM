@@ -43,7 +43,7 @@ class DataProcessing:
         NumberofOutputNeurons = len(labels)
         NumberofTrainingData = conjuntoTreinamento.shape[0]
         
-        P = conjuntoTreinamento.T
+        P = conjuntoTreinamento[:,1:].T
         #breakpoint()
         # Initialize T with ones
         T = conjuntoTreinamento[:, 0]
@@ -55,7 +55,6 @@ class DataProcessing:
                     break
             temp_T[j][i]=1
         T=temp_T*2-1
-        breakpoint()
 
         minP1 = np.min(P[0, :])
         maxP1 = np.max(P[0, :])

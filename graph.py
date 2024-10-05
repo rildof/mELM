@@ -801,7 +801,6 @@ def dados_entrada_xai(entradasTreinamento, saidasTreinamento, entradasTeste, sai
             j = np.where(label == TVT[i])[0][0]
             temp_TV_T[j, i] = 1
         TVT = temp_TV_T * 2 - 1
-
     return REGRESSION, CLASSIFIER, T, P, TVT, TVP, C, NumberofTrainingData, NumberofTestingData, Elm_Type
 
 def elm_autoral_xai(classificador, Elm_Type, ActivationFunction, 
@@ -4451,7 +4450,6 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
         TVP = np.vstack((benignTest, malignTest))
     
     print(NumberofInputNeurons)
-    breakpoint()
     #Pesos para as execuções padrão
     InputWeight, BiasofHiddenNeurons = pesos(iteracao, NumberofHiddenNeurons, NumberofInputNeurons)
 
@@ -4479,7 +4477,6 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
     # Set benign values to -1
     T[1, :benignInput.shape[0]] = -1
     T[0, benignInput.shape[0]:] = -1
-    breakpoint()
     # Calculate minimum and maximum values for P
     if kernel != "authoral":
         minP1 = np.min(P[0, :])
@@ -4552,6 +4549,7 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
     #                             benignInput, malignInput) 
     #ELM XAI
     #ELM XAI Rildo
+    breakpoint()
     grafico_auxiliar_Rildo('XAIRildo','dilatacao_classica', kernel,
                          NumberofTrainingData, NumberofTestingData,
                          InputWeight_xai_Rildo, InputWeightClass, P, T, TVP,
