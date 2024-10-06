@@ -12,25 +12,22 @@ import numpy as np
 import random
 class IterativeWeights:
     def __init__(self, conjuntoTreinamento, max_iterations=1000):
-        self.max_iterations = max_iterations #Max iterations for the XAI algorithm
         self.NumberofInputNeurons = conjuntoTreinamento[:,1:].shape[1] #Number of features
         self.NumberofClasses = len(np.unique(conjuntoTreinamento[:,0]))
         self.conjuntoTreinamento = conjuntoTreinamento #Dataset
+        #Variables for the Iterative XAI algorithm
+        self.max_iterations = max_iterations #Max iterations for the XAI algorithm
         self.conjuntoTreinemantoELM = copy.deepcopy(self.conjuntoTreinamento)
         self.feature_saturation = np.zeros((self.NumberofClasses,
                                        self.NumberofInputNeurons))
         self.InputWeight = np.zeros((self.NumberofClasses,
                                 self.NumberofInputNeurons))
         self.InputWeightClass = np.zeros((self.NumberofClasses))
-    
+        self.iteration = 0
+        self.count_iteration = 1
         
     def get_xai_weights(self):
-
-        
-        level = 0
-        count_level = 1
-
-        while True:
+        while True or self.iteration < self.max_iterations:
             level += 1
 
             self.xai_weights_aux_func()
@@ -41,6 +38,7 @@ class IterativeWeights:
                 InputWeightClass = InputWeightClass[InputWeightClass != 0]
             
             self.run_elm_level()
+
             #Condições de parada
 
             if self.conjuntoTreinemanto.size == 0:
@@ -48,11 +46,16 @@ class IterativeWeights:
             if len(set(self.conjuntoTreinamento[:, 0])) == 1 and ({1} in [set(f) for f in feature_saturation]): # 
                 break
             # Verifica se todas as features estão saturadas
-            if np.all(feature_saturation == 1):
+            if np.all(self.feature_saturation == 1):
                 print('All features are saturated')
                 break
         return self.weights
-       
+
+    def xai_weights_aux_func(self):
+        pass
+
+    def run_elm_level(self):
+        pass
 
 
     def get_random_weights(self, NumberofHiddenNeurons):
