@@ -19,6 +19,16 @@ class DataProcessing:
         self.NumberofTrainingData = 0
         self.NumberofOutputNeurons = 0
 
+    def process_file(self, path):
+        """Processa o arquivo de dados e retorna um array numpy"""
+        if os.path.exists(path):
+            with open(path, 'r') as file:
+                data = file.readlines()
+                data = [re.sub(r'\s+', ' ', x.strip()) for x in data]
+                data = [x.split(' ') for x in data]
+                data = np.array(data, dtype=float)
+                return data
+            
 
     def create_dataset(self, *args):
         """Junta os conjuntos de dados benigno e maligno em um único conjunto de dados"""
@@ -32,10 +42,13 @@ class DataProcessing:
             
         labels = []
         for index, ar in enumerate(args):
+            #Process file if it is a string
+            if type(ar) == str:
+                args[index] = self.process_file(ar)
+            #Insert the label in the first column
             args[index] = np.insert(ar, 0, index+1, axis=1)
             labels.append(index+1)
         
-
         conjuntoTreinamento = np.vstack((args[0], args[1]))
         for i in range(2, len(args)):
             conjuntoTreinamento = np.vstack((conjuntoTreinamento, args[i]))
@@ -44,7 +57,6 @@ class DataProcessing:
         NumberofTrainingData = conjuntoTreinamento.shape[0]
         
         P = conjuntoTreinamento[:,1:].T
-        #breakpoint()
         # Initialize T with ones
         T = conjuntoTreinamento[:, 0]
         temp_T=np.zeros((NumberofOutputNeurons, NumberofTrainingData))
@@ -55,20 +67,21 @@ class DataProcessing:
                     break
             temp_T[j][i]=1
         T=temp_T*2-1
-
-        minP1 = np.min(P[0, :])
-        maxP1 = np.max(P[0, :])
-        minP2 = np.min(P[1, :])
-        maxP2 = np.max(P[1, :])
-        # Create vectors using linspace
-        vetora = np.linspace(minP1, maxP1, int(160))
-        vetorb = np.linspace(minP2, maxP2, int(80))
-        # Create the combinatorial matrix similar to combvec in MATLAB
-        TVP = np.array(list(product(vetora, vetorb))).T
-        # T se transforma em uma matriz 2xN, onde N é o número de amostras
-        # linha 0: se for 1, é da classe 1, se for -1, é classe 0
-        # linha 1: se for 1, é da classe 0, se for -1, é classe 1
-
+        if conjuntoTreinamento.shape[0] == 3:
+            minP1 = np.min(P[0, :])
+            maxP1 = np.max(P[0, :])
+            minP2 = np.min(P[1, :])
+            maxP2 = np.max(P[1, :])
+            # Create vectors using linspace
+            vetora = np.linspace(minP1, maxP1, int(160))
+            vetorb = np.linspace(minP2, maxP2, int(80))
+            # Create the combinatorial matrix similar to combvec in MATLAB
+            TVP = np.array(list(product(vetora, vetorb))).T
+            # T se transforma em uma matriz 2xN, onde N é o número de amostras
+            # linha 0: se for 1, é da classe 1, se for -1, é classe 0
+            # linha 1: se for 1, é da classe 0, se for -1, é classe 1
+        else:
+            TVP = P
         return conjuntoTreinamento, T, P, TVP
 
 
@@ -2906,8 +2919,13 @@ class DataProcessing:
         
         # Criando o dataset de classificação com 10 features e 2 classes (benign e malign)
         num_samples = num_samples
+        n_informative = num_features // 2
+        n_redundant = num_features // 3 or 1
+        n_clusters_per_class = 1
         X, y = make_classification(n_samples=num_samples, n_features=num_features, 
-                                n_informative=5, n_redundant=2, n_clusters_per_class=1,
+                                n_informative=n_informative, 
+                                n_redundant=n_redundant, 
+                                n_clusters_per_class=n_clusters_per_class,
                                 n_classes=num_classes, flip_y=0.01, random_state=seed)
         
         # Transformando as classes 0 e 1 em 'benign' e 'malign'
@@ -2915,7 +2933,6 @@ class DataProcessing:
         args = []
         for label in labels:
             args.append(X[np.where(y == label)[0]])
-        breakpoint()
         
 
         return self.create_dataset(*args)

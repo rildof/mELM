@@ -22,12 +22,15 @@ text_size = 30
 class Plotter:
 
     def __init__(self):
+        saved_figs = []
         pass
 
-    def plotar(author, pasta, ActivationFunction, NumberofHiddenNeurons, 
-            entrada_benigno, entrada_maligno, xx1, yy1, xx2, yy2, acc, 
-            InputWeight=None, InputWeightClass=None):
-
+    def plotar(self, dataset, xai_data,
+            InputWeight=None, InputWeightClass=None, *args):
+        xx1, yy1, xx2, yy2 = xai_data
+        # separate dataset based on its class (column 0)
+        entrada_benigno = dataset[dataset[:, 1] == 1][:, 1:]
+        entrada_maligno = dataset[dataset[:, 1] == 2][:, 1:]
         # Create scatter plot for xx1, yy1 (blue 'x') and xx2, yy2 (red 'o')
         fig = go.Figure()
         
@@ -38,7 +41,7 @@ class Plotter:
         
         fig.add_trace(go.Scatter(x=xx2, y=yy2, mode='markers',
                                 marker=dict(size=points_size, color='red', symbol='circle'),
-                                name='Class 2',opacity=0.6))
+                                name='Class 2',opacity=0.6),)
         
         # Handling InputWeight and InputWeightClass similar to plotar_Rildo
         if InputWeight is not None and InputWeightClass is not None:
@@ -102,12 +105,14 @@ class Plotter:
         # Adjust axis appearance
         fig.update_xaxes(showticklabels=False)
         fig.update_yaxes(showticklabels=False)
-
+        title = ''
+        for i in args:
+            title+=str(i)+'|'
         # Update layout
         fig.update_layout(
             margin=dict(l=0, r=0, t=50, b=0), 
             autosize=True,
-            title=f'{author}|{ActivationFunction}|{NumberofHiddenNeurons} Hidden Neurons|Accuracy: {acc:.2f}%',
+            title=title,
             title_x=0.5,
             xaxis_title='Feature 1',
             yaxis_title='Feature 2',
@@ -116,10 +121,11 @@ class Plotter:
 
         # Display the figure
         fig.show()
-        if not os.path.exists("ELM_XAI"):
-            os.mkdir("images")
-        if not os.path.exists(f"ELM_XAI/{pasta}"):
-            os.mkdir(f"ELM_XAI/{pasta}")
+        self.set_figs(fig, title)
+        #if not os.path.exists("ELM_XAI"):
+        #    os.mkdir("images")
+        #if not os.path.exists(f"ELM_XAI/{pasta}"):
+        #    os.mkdir(f"ELM_XAI/{pasta}")
         #fig.write_image(f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png')
         #pio.write_image(fig, f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png',scale=2, width=864, height=720)
 
@@ -228,3 +234,26 @@ class Plotter:
             os.mkdir(f"ELM_XAI/{pasta}")
         #fig.write_image(f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png')
         pio.write_image(fig, f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png',scale=2, width=864, height=720)
+    
+    def get_figs(self):
+        return self.saved_figs
+    
+    def set_figs(self, fig, name):
+        if name not in self.saved_figs:
+            self.saved_figs.append({'name': name, 'fig': fig})
+        else:
+            #Count number of ocurrences of the name 
+            count = 0
+            for i in self.saved_figs:
+                if name in i['Name']:
+                    count+=1
+            self.saved_figs.append({'name': name+count, 'fig': fig})
+
+    def save_fig_img(self, fig, pasta, name):
+        if not os.path.exists("ELM_XAI"):
+            os.mkdir("images")
+        if not os.path.exists(f"ELM_XAI/{pasta}"):
+            os.mkdir(f"ELM_XAI/{pasta}")
+        #fig.write_image(f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png')
+        pio.write_image(fig, f'ELM_XAI/{pasta}/{name}.png',scale=2, width=864, height=720)
+    

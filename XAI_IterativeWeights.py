@@ -14,7 +14,7 @@ import random
 class IterativeWeights:
     def __init__(self, conjuntoTreinamento, max_iterations=1000):
         self.max_iterations = max_iterations #Max iterations for the XAI algorithm
-        self.NumberofInputNeurons = conjuntoTreinamento.shape[1] #Number of features
+        self.NumberofInputNeurons = conjuntoTreinamento[:,1:].shape[1] #Number of features
         self.conjuntoTreinamento = conjuntoTreinamento #Dataset
         self.weights = []
         self.biases = []
@@ -40,13 +40,13 @@ class IterativeWeights:
             return R
 
         # Set the seed for reproducibility
-        np.random.seed(iteracao)
+        np.random.seed(random.randint(0, 1000))
         
         # Generate random weights between -1 and 1
-        InputWeight = np.random.rand(NumberofHiddenNeurons, NumberofInputNeurons) * 2 - 1
+        InputWeight = np.random.rand(NumberofHiddenNeurons, self.NumberofInputNeurons) * 2 - 1
         
         # Generate random biases
-        np.random.seed(iteracao)
+        np.random.seed(random.randint(0, 1000))
         BiasofHiddenNeurons = np.random.rand(NumberofHiddenNeurons, 1)
         
         # Normalize weights and biases
