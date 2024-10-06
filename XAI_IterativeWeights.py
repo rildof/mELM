@@ -10,18 +10,47 @@ from sklearn.datasets import make_classification
 import re
 import numpy as np
 import random
-
 class IterativeWeights:
     def __init__(self, conjuntoTreinamento, max_iterations=1000):
         self.max_iterations = max_iterations #Max iterations for the XAI algorithm
         self.NumberofInputNeurons = conjuntoTreinamento[:,1:].shape[1] #Number of features
+        self.NumberofClasses = len(np.unique(conjuntoTreinamento[:,0]))
         self.conjuntoTreinamento = conjuntoTreinamento #Dataset
-        self.weights = []
-        self.biases = []
-
+        self.conjuntoTreinemantoELM = copy.deepcopy(self.conjuntoTreinamento)
+        self.feature_saturation = np.zeros((self.NumberofClasses,
+                                       self.NumberofInputNeurons))
+        self.InputWeight = np.zeros((self.NumberofClasses,
+                                self.NumberofInputNeurons))
+        self.InputWeightClass = np.zeros((self.NumberofClasses))
     
         
     def get_xai_weights(self):
+
+        
+        level = 0
+        count_level = 1
+
+        while True:
+            level += 1
+
+            self.xai_weights_aux_func()
+
+            if level == 1:
+                #Remove the zeroes from the InputWeight matrix
+                InputWeight = InputWeight[~np.all(InputWeight == 0, axis=1)]
+                InputWeightClass = InputWeightClass[InputWeightClass != 0]
+            
+            self.run_elm_level()
+            #Condições de parada
+
+            if self.conjuntoTreinemanto.size == 0:
+                break
+            if len(set(self.conjuntoTreinamento[:, 0])) == 1 and ({1} in [set(f) for f in feature_saturation]): # 
+                break
+            # Verifica se todas as features estão saturadas
+            if np.all(feature_saturation == 1):
+                print('All features are saturated')
+                break
         return self.weights
        
 

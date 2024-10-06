@@ -48,10 +48,10 @@ class XAI:
         TY = (H_test.T @ OutputWeight).T
         del H_test  # Clear H_test to save memory
         (acc,
-         wrongIndexes) = self.evaluate_network_accuracy(TY, self.TVP)
+         wrongIndexes) = self.evaluate_network_accuracy(TY, self.T)
         if verbose: print(f'Testing Accuracy: {acc}%')
         # Evaluate the network for testing
-        xx1, yy1, xx2, yy2 = self.separate_classes_plotting(TY, self.TVP)
+        xx1, yy1, xx2, yy2 = self.separate_classes_plotting(TY, self.T)
         return (xx1, yy1, xx2, yy2)
     
     def evaluate_network_accuracy(self, Y, T):

@@ -15,7 +15,7 @@ def main(benign_path=None, malign_path=None):
     else:
          dataset, T, P, TVP = (
         preProcesser.get_sample_datasets('linear'))
-        #preProcesser.get_dataset_scikit(100,4,4))
+        #preProcesser.get_dataset_scikit(500,4,4))
 
     print('Dataset loaded')
     # Calculate Weights
@@ -23,8 +23,8 @@ def main(benign_path=None, malign_path=None):
     weight_factory = IterativeWeights(
          conjuntoTreinamento=dataset,
          max_iterations=1000)
-    #weights_xai = weight_factory.get_xai_weights()
-    weights_elm, bias_elm = weight_factory.get_random_weights(NumberofHiddenNeurons=100)
+    weights_elm, bias_elm = weight_factory.get_xai_weights()
+    #weights_elm, bias_elm = weight_factory.get_random_weights(NumberofHiddenNeurons=100)
 
     print('Weights Calculated')
     # Run XAI algorithm
@@ -43,7 +43,8 @@ def main(benign_path=None, malign_path=None):
     # Plot the data
     plotter = Plotter()
     plotter.plotar(dataset, traditional_xai_data, None, None, 'ELM', 'XAI')
-    
+
+  
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Process paths to benign and malign files.')
     parser.add_argument('--benign', type=str, help='Path to benign file', default=None, required=False)

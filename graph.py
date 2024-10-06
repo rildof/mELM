@@ -271,6 +271,7 @@ def pesos(iteracao, NumberofHiddenNeurons, NumberofInputNeurons):
     return InputWeight, BiasofHiddenNeurons
 
 def pesos_xai_rildo(iteracao, NumberofInputNeurons, conjuntoTreinamento):
+
     classes = 2
     u = 1
     kernel = 'dilatacao_classica'
