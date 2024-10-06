@@ -140,13 +140,13 @@ def plotar(author, pasta, ActivationFunction, NumberofHiddenNeurons,
     )
 
     # Display the figure
-    #fig.show()
+    fig.show()
     if not os.path.exists("ELM_XAI"):
         os.mkdir("images")
     if not os.path.exists(f"ELM_XAI/{pasta}"):
         os.mkdir(f"ELM_XAI/{pasta}")
     #fig.write_image(f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png')
-    pio.write_image(fig, f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png',scale=2, width=864, height=720)
+    #pio.write_image(fig, f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png',scale=2, width=864, height=720)
 
 def plotar_Rildo(author, pasta, ActivationFunction, NumberofHiddenNeurons,
                  InputWeight, InputWeightClass, 
@@ -245,13 +245,13 @@ def plotar_Rildo(author, pasta, ActivationFunction, NumberofHiddenNeurons,
     )
 
     # Exibir a figura
-    #fig.show()
+    fig.show()
     if not os.path.exists("ELM_XAI"):
         os.mkdir("images")
     if not os.path.exists(f"ELM_XAI/{pasta}"):
         os.mkdir(f"ELM_XAI/{pasta}")
     #fig.write_image(f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png')
-    pio.write_image(fig, f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png',scale=2, width=864, height=720)
+    #pio.write_image(fig, f'ELM_XAI/{pasta}/{author}_{ActivationFunction}_{acc}_{NumberofHiddenNeurons}.png',scale=2, width=864, height=720)
 
 def pesos(iteracao, NumberofHiddenNeurons, NumberofInputNeurons):
     # Set the seed for reproducibility
@@ -801,6 +801,7 @@ def dados_entrada_xai(entradasTreinamento, saidasTreinamento, entradasTeste, sai
             j = np.where(label == TVT[i])[0][0]
             temp_TV_T[j, i] = 1
         TVT = temp_TV_T * 2 - 1
+
     return REGRESSION, CLASSIFIER, T, P, TVT, TVP, C, NumberofTrainingData, NumberofTestingData, Elm_Type
 
 def elm_autoral_xai(classificador, Elm_Type, ActivationFunction, 
@@ -826,7 +827,6 @@ def elm_autoral_xai(classificador, Elm_Type, ActivationFunction,
     
     # Calculate the output of testing input
     start_time_test = time.time()
-    
     H_test = switchActivationFunction(ActivationFunction, InputWeight, BiasMatrix,  TVP)
     TY = (H_test.T @ OutputWeight).T
     
@@ -4208,10 +4208,10 @@ def grafico_auxiliar(author, ActivationFunction, pasta, NumberofHiddenNeurons,
     acc, wrongIndexes = avaliarRedeTreino(Y, NumberofTrainingData, T)
 
     # Calculate the hidden layer output matrix for the test data (H_test)
+
     H_test = switchActivationFunction(ActivationFunction, InputWeight, BiasofHiddenNeurons, TVP)
     TY = (H_test.T @ OutputWeight).T
     del H_test  # Clear H_test to save memory
-
     # Evaluate the network for testing
     xx1, yy1, xx2, yy2 = avaliarRede(TY, TVP)
 
@@ -4447,7 +4447,7 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
         iteracao = 1
         NumberofInputNeurons = benignInput.shape[1]
         P = np.vstack((benignInput, malignInput))   
-        TVP = np.vstack((benignTest, malignTest))
+        TP = np.vstack((benignTest, malignTest))
     
     print(NumberofInputNeurons)
     #Pesos para as execuções padrão
@@ -4464,9 +4464,9 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
 
     conjuntoTreinamento = np.vstack((entrada_maligno_Rildo, entrada_benigno_Rildo))
     
-    InputWeight_xai_Rildo, InputWeightClass = pesos_xai_rildo(
-        iteracao, NumberofInputNeurons, conjuntoTreinamento
-    )
+    # InputWeight_xai_Rildo, InputWeightClass = pesos_xai_rildo(
+    #     iteracao, NumberofInputNeurons, conjuntoTreinamento
+    # )
     #---------------------------------------------------------------------------- RILDO
 
 
@@ -4474,9 +4474,10 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
     # Initialize T with ones
     T = np.ones((2, P.shape[1]))
 
-    # Set benign values to -1
+    # Set values in T based on the condition
     T[1, :benignInput.shape[0]] = -1
     T[0, benignInput.shape[0]:] = -1
+
     # Calculate minimum and maximum values for P
     if kernel != "authoral":
         minP1 = np.min(P[0, :])
@@ -4508,7 +4509,7 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
             #vetorb = np.linspace(minPs[int(chosenIndices[1])], maxPs[int(chosenIndices[1])], int(num_amostras*1.6))
             vectors = np.linspace(minPs, maxPs, num_amostras)
         else:
-            TVP = TVP.T
+            TVP = TP.T
 
     #make TVP including all indices in chosenIndices product
     #TVP = np.array(list(product(*vectors[chosenIndices]))).T
@@ -4524,11 +4525,11 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
     #                  benignInput, malignInput)
 
     # ELM Clássica
-    # grafico_auxiliar('PINHEIRO','dilation', kernel, NumberofHiddenNeurons,
-    #                      NumberofTrainingData, NumberofTestingData,
-    #                      InputWeight, P, T, TVP,
-    #                      BiasofHiddenNeurons,
-    #                      benignInput, malignInput)
+    grafico_auxiliar('PINHEIRO','dilation', kernel, NumberofHiddenNeurons,
+                         NumberofTrainingData, NumberofTestingData,
+                         InputWeight, P, T, TVP,
+                         BiasofHiddenNeurons,
+                         benignInput, malignInput)
     
     # grafico_auxiliar('PINHEIRO','erosao_classica', kernel, NumberofHiddenNeurons,
     #                     NumberofTrainingData,NumberofTestingData,
@@ -4549,11 +4550,10 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
     #                             benignInput, malignInput) 
     #ELM XAI
     #ELM XAI Rildo
-    breakpoint()
-    grafico_auxiliar_Rildo('XAIRildo','dilatacao_classica', kernel,
-                         NumberofTrainingData, NumberofTestingData,
-                         InputWeight_xai_Rildo, InputWeightClass, P, T, TVP,
-                         benignInput, malignInput)
+    # grafico_auxiliar_Rildo('XAIRildo','dilatacao_classica', kernel,
+    #                      NumberofTrainingData, NumberofTestingData,
+    #                      InputWeight_xai_Rildo, InputWeightClass, P, T, TVP,
+    #                      benignInput, malignInput)
     
 
 num_amostras =  40

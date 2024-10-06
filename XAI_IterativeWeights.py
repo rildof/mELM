@@ -22,7 +22,7 @@ class IterativeWeights:
     
         
     def get_xai_weights(self):
-        conjuntoTreinamento = self.conjuntoTreinamento
+        return self.weights
        
 
 

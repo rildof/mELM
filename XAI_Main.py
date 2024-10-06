@@ -18,15 +18,15 @@ def main(benign_path=None, malign_path=None):
         #preProcesser.get_dataset_scikit(100,4,4))
 
     print('Dataset loaded')
-    breakpoint()
     # Calculate Weights
 
-    weight_factory = IterativeWeights(dataset, 100)
+    weight_factory = IterativeWeights(
+         conjuntoTreinamento=dataset,
+         max_iterations=1000)
     #weights_xai = weight_factory.get_xai_weights()
     weights_elm, bias_elm = weight_factory.get_random_weights(NumberofHiddenNeurons=100)
 
     print('Weights Calculated')
-    breakpoint()
     # Run XAI algorithm
 
     xai = XAI(dataset, T, P, TVP)
@@ -40,7 +40,6 @@ def main(benign_path=None, malign_path=None):
                             verbose=True)
 
     print('ELM Algorithm run')
-    breakpoint()
     # Plot the data
     plotter = Plotter()
     plotter.plotar(dataset, traditional_xai_data, None, None, 'ELM', 'XAI')
