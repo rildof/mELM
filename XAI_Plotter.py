@@ -22,15 +22,15 @@ text_size = 30
 class Plotter:
 
     def __init__(self):
-        saved_figs = []
+        self.saved_figs = []
         pass
 
     def plotar(self, dataset, xai_data,
             InputWeight=None, InputWeightClass=None, *args):
         xx1, yy1, xx2, yy2 = xai_data
         # separate dataset based on its class (column 0)
-        entrada_benigno = dataset[dataset[:, 1] == 1][:, 1:]
-        entrada_maligno = dataset[dataset[:, 1] == 2][:, 1:]
+        entrada_benigno = dataset[dataset[:, 0] == 1][:, 1:]
+        entrada_maligno = dataset[dataset[:, 0] == 2][:, 1:]
         # Create scatter plot for xx1, yy1 (blue 'x') and xx2, yy2 (red 'o')
         fig = go.Figure()
         
@@ -42,7 +42,6 @@ class Plotter:
         fig.add_trace(go.Scatter(x=xx2, y=yy2, mode='markers',
                                 marker=dict(size=points_size, color='red', symbol='circle'),
                                 name='Class 2',opacity=0.6),)
-        
         # Handling InputWeight and InputWeightClass similar to plotar_Rildo
         if InputWeight is not None and InputWeightClass is not None:
             # Find the indices and filter benign and malignant entries

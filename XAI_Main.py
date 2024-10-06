@@ -14,8 +14,8 @@ def main(benign_path=None, malign_path=None):
          dataset, T, P, TVP = preProcesser.create_dataset()
     else:
          dataset, T, P, TVP = (
-        #preProcesser.get_sample_datasets('linear')
-        preProcesser.get_dataset_scikit(100,4,4))
+        preProcesser.get_sample_datasets('linear'))
+        #preProcesser.get_dataset_scikit(100,4,4))
 
     print('Dataset loaded')
     breakpoint()
@@ -36,7 +36,8 @@ def main(benign_path=None, malign_path=None):
     traditional_xai_data =  xai.run_traditional_elm(
                             InputWeight= weights_elm, 
                             BiasofHiddenNeurons= bias_elm,
-                            ActivationFunction= 'dilation')
+                            ActivationFunction= 'dilation',
+                            verbose=True)
 
     print('ELM Algorithm run')
     breakpoint()

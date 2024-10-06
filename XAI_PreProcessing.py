@@ -67,7 +67,7 @@ class DataProcessing:
                     break
             temp_T[j][i]=1
         T=temp_T*2-1
-        if conjuntoTreinamento.shape[0] == 3:
+        if conjuntoTreinamento.shape[1] == 3:
             minP1 = np.min(P[0, :])
             maxP1 = np.max(P[0, :])
             minP2 = np.min(P[1, :])

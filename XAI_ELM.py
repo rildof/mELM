@@ -26,7 +26,8 @@ class XAI:
 
 
     def run_traditional_elm(self, InputWeight, BiasofHiddenNeurons,
-                            ActivationFunction='dilation'):
+                            ActivationFunction='dilation',
+                            verbose=False):
         """Function to run the traditional ELM algorithm with the given parameters."""
         # Calculate the hidden layer output matrix (H)
 
@@ -40,12 +41,15 @@ class XAI:
         # Evaluate the training network
         (acc,
          wrongIndexes) = self.evaluate_network_accuracy(Y, self.T)
+        if verbose: print(f'Training Accuracy: {acc}%')
         # Calculate the hidden layer output matrix for the test data (H_test)
         H_test = switchActivationFunction(ActivationFunction, 
                                           InputWeight, BiasofHiddenNeurons, self.TVP)
         TY = (H_test.T @ OutputWeight).T
         del H_test  # Clear H_test to save memory
-
+        (acc,
+         wrongIndexes) = self.evaluate_network_accuracy(TY, self.TVP)
+        if verbose: print(f'Testing Accuracy: {acc}%')
         # Evaluate the network for testing
         xx1, yy1, xx2, yy2 = self.separate_classes_plotting(TY, self.TVP)
 
@@ -53,6 +57,7 @@ class XAI:
     
     def evaluate_network_accuracy(self, Y, T):
         """Function to evaluate the network."""
+        NumberofTrainingData = Y.shape[1]
         # Get the index of the maximum output (winner neuron) for each pattern
         nodoVencedorRede = np.argmax(Y, axis=0)
         nodoVencedorDesejado = np.argmax(T, axis=0)
@@ -61,7 +66,7 @@ class XAI:
         classificacoesErradas = np.sum(nodoVencedorRede != nodoVencedorDesejado)
         wrongIndexes = np.where(nodoVencedorRede != nodoVencedorDesejado)
         # Calculate accuracy
-        accuracy = 1 - (classificacoesErradas / self.NumberofTrainingData)
+        accuracy = 1 - (classificacoesErradas / NumberofTrainingData)
         accuracy = round(accuracy * 100, 2)
         
         return accuracy, wrongIndexes
