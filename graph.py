@@ -369,7 +369,6 @@ def pesos_xai_auxiliar(nivel, InputWeightTotal, InputWeightClass, feature_satura
             InputWeightTotal = np.vstack((InputWeightTotal,
                                 np.zeros((1, NumberofInputNeurons), dtype=np.float64) ) )
             InputWeightClass = np.append(InputWeightClass,[0])
-
             InputWeightTotal, InputWeightClass, feature_saturation, count_nivel = \
                 pesos_xai_classe_por_classe(nivel, InputWeightTotal, InputWeightClass, 
                                             feature_saturation, NumberofInputNeurons, 
@@ -405,7 +404,6 @@ def pesos_xai_auxiliar(nivel, InputWeightTotal, InputWeightClass, feature_satura
             InputWeightTotal = np.vstack((InputWeightTotal,
                                 np.zeros((1, NumberofInputNeurons), dtype=np.float64) ) )
             InputWeightClass = np.append(InputWeightClass,[0])
-            
             InputWeightTotal, InputWeightClass, feature_saturation, count_nivel = \
                 pesos_xai_classe_por_classe(nivel, InputWeightTotal, InputWeightClass, 
                                             feature_saturation, NumberofInputNeurons, 
@@ -429,7 +427,7 @@ def pesos_xai_auxiliar(nivel, InputWeightTotal, InputWeightClass, feature_satura
                 #Remove all added zeros in InputWeightTotal and InputWeightClass
                 InputWeightTotal = InputWeightTotal[:-1]
                 InputWeightClass = InputWeightClass[:-1]
-
+    
     print('InputWeightTotal:', InputWeightTotal)
     print('Feature saturation:', feature_saturation)
     # Reordenando para que os primeiros pesos sejam da classe e o segundo peso da contra-classe
@@ -4465,9 +4463,9 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
 
     conjuntoTreinamento = np.vstack((entrada_maligno_Rildo, entrada_benigno_Rildo))
     
-    # InputWeight_xai_Rildo, InputWeightClass = pesos_xai_rildo(
-    #     iteracao, NumberofInputNeurons, conjuntoTreinamento
-    # )
+    InputWeight_xai_Rildo, InputWeightClass = pesos_xai_rildo(
+        iteracao, NumberofInputNeurons, conjuntoTreinamento
+    )
     #---------------------------------------------------------------------------- RILDO
 
 
@@ -4526,11 +4524,11 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
     #                  benignInput, malignInput)
 
     # ELM Clássica
-    grafico_auxiliar('PINHEIRO','dilation', kernel, NumberofHiddenNeurons,
-                         NumberofTrainingData, NumberofTestingData,
-                         InputWeight, P, T, TVP,
-                         BiasofHiddenNeurons,
-                         benignInput, malignInput)
+    # grafico_auxiliar('PINHEIRO','dilation', kernel, NumberofHiddenNeurons,
+    #                      NumberofTrainingData, NumberofTestingData,
+    #                      InputWeight, P, T, TVP,
+    #                      BiasofHiddenNeurons,
+    #                      benignInput, malignInput)
     
     # grafico_auxiliar('PINHEIRO','erosao_classica', kernel, NumberofHiddenNeurons,
     #                     NumberofTrainingData,NumberofTestingData,
@@ -4551,10 +4549,10 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
     #                             benignInput, malignInput) 
     #ELM XAI
     #ELM XAI Rildo
-    # grafico_auxiliar_Rildo('XAIRildo','dilatacao_classica', kernel,
-    #                      NumberofTrainingData, NumberofTestingData,
-    #                      InputWeight_xai_Rildo, InputWeightClass, P, T, TVP,
-    #                      benignInput, malignInput)
+    grafico_auxiliar_Rildo('XAIRildo','dilatacao_classica', kernel,
+                         NumberofTrainingData, NumberofTestingData,
+                         InputWeight_xai_Rildo, InputWeightClass, P, T, TVP,
+                         benignInput, malignInput)
     
 
 num_amostras =  40

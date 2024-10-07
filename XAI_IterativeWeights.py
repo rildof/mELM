@@ -27,12 +27,15 @@ class IterativeWeights:
         self.count_iteration = 1
         
     def get_xai_weights(self):
+        """Function that calculates the weights for the XAI algorithm"""
+        # Loop through the levels of the XAI algorithm
+        # Each level results in num_classes weights added to weights list
         while True or self.iteration < self.max_iterations:
-            level += 1
+            self.iteration += 1
 
             self.xai_weights_aux_func()
 
-            if level == 1:
+            if self.iteration == 1:
                 #Remove the zeroes from the InputWeight matrix
                 InputWeight = InputWeight[~np.all(InputWeight == 0, axis=1)]
                 InputWeightClass = InputWeightClass[InputWeightClass != 0]
@@ -43,7 +46,7 @@ class IterativeWeights:
 
             if self.conjuntoTreinemanto.size == 0:
                 break
-            if len(set(self.conjuntoTreinamento[:, 0])) == 1 and ({1} in [set(f) for f in feature_saturation]): # 
+            if len(set(self.conjuntoTreinamento[:, 0])) == 1 and ({1} in [set(f) for f in self.feature_saturation]): # 
                 break
             # Verifica se todas as features estão saturadas
             if np.all(self.feature_saturation == 1):
@@ -52,9 +55,58 @@ class IterativeWeights:
         return self.weights
 
     def xai_weights_aux_func(self):
-        pass
+        """Function that calculates the weights for the XAI algorithm
+        for its current iteration
+        
+        Consists in three main steps:
+        1. Calculate the mode for each class and feature
+        2. Calculate the weights for each class and feature
+        3. Calculate the saturation for each class and feature"""
+
+        separated_classes = [self.conjuntoTreinamento[self.conjuntoTreinamento[:, 0] == i] for
+                              i in range(1, self.NumberofClasses + 1)]
+        #Min for each class and feature
+        min_classes = np.zeros((self.NumberofClasses, self.NumberofInputNeurons))
+        for i in range(self.NumberofClasses):
+            for j in range(self.NumberofInputNeurons):
+                # Calculate the min for each class and feature
+                min_classes[i, j] = np.min(separated_classes[i][:, j + 1])
+        #sort classes by length
+        separated_classes = sorted(separated_classes, key=lambda x: len(x))
+        for c in separated_classes:
+            # Set new line for matrices
+            self.InputWeight = np.vstack((self.InputWeight, 
+                                          np.zeros((1, self.NumberofInputNeurons))))
+            self.InputWeightClass = np.append(self.InputWeightClass, 0)
+            
+            #Calculate the mode for each class and feature (pesos_xai_classe_por_classe)
+
+            # Calculate the mode for each class and feature
+            classe = c[0,0]
+            # Verifica se a saturação para a classe já ocorreu
+            if (np.sum(self.feature_saturation[classe-1, :]) == 
+                self.feature_saturation.shape[1]):
+                continue
+            
+            # Calcula os máximos
+            ####vectorInput, inputMax =
+            #TODO
+
+            #FIM pesos_xai_classe_por_classe
+
+            #Condicional para checar se o peso foi populado
+            if InputWeightClass[-1] == 0 and self.iteration > 1:
+                #Remove all added zeros in InputWeightTotal and InputWeightClass
+                InputWeightTotal = InputWeightTotal[:-1]
+                InputWeightClass = InputWeightClass[:-1]
+            breakpoint()
+
 
     def run_elm_level(self):
+        """Function that runs the ELM algorithm for 
+        the current iteration for evaluation in the next
+        iteration"""
+
         pass
 
 
