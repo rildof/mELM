@@ -633,7 +633,6 @@ def calcula_maximos(feature_saturation, entrada, NumberofInputNeurons, classe, m
     vectorInput, inputMax, index = calcula_maximos_auxiliar(
         feature_saturation, linhasSelecionadas, NumberofInputNeurons, classe, min_entrada
     )
-
     return vectorInput, inputMax
 
 def calcula_maximos_auxiliar(feature_saturation, entrada, NumberofInputNeurons, classe, min_entrada):

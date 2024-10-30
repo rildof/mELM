@@ -82,15 +82,36 @@ class IterativeWeights:
             #Calculate the mode for each class and feature (pesos_xai_classe_por_classe)
 
             # Calculate the mode for each class and feature
-            classe = c[0,0]
+            classe = int(c[0,0])
             # Verifica se a saturação para a classe já ocorreu
             if (np.sum(self.feature_saturation[classe-1, :]) == 
                 self.feature_saturation.shape[1]):
                 continue
+            # Calcula os máximos (calcula_maximos)
+            #calcula_maximos_auxiliar
+            def calcula_maximos_auxiliar(c):
+                vectorInput = np.zeros(self.NumberofInputNeurons)
+                for i in range(1, self.NumberofInputNeurons):
+                    if self.feature_saturation[classe-1, i] == 0:
+                        vectorInput[i] = stats.mode((c[:, i]))[0]
+                    else:
+                        vectorInput[i] = min_classes[classe-1, i]
+                
+                filtrado = vectorInput[self.feature_saturation[classe - 1, :] != 1]
+                
+                # Determina o valor máximo do vetor filtrado
+                inputMax = np.max(filtrado)
+                index = np.where(vectorInput == inputMax)[0][0]
+                return vectorInput, inputMax, index
+            vectorInput, inputMax, index = calcula_maximos_auxiliar(c)
+            # Filtra as linhas onde o valor na coluna index é igual ao inputMax
+            #linhasSelecionadas = entrada[entrada[:, index] == inputMax, :]
+            linhasSelecionadas = c[c[:, index] == inputMax, :]
+            vectorInput, inputMax, index = calcula_maximos_auxiliar(linhasSelecionadas)
+            #FIM calcula_maximos
+
             
-            # Calcula os máximos
-            ####vectorInput, inputMax =
-            #TODO
+
 
             #FIM pesos_xai_classe_por_classe
 
@@ -140,3 +161,31 @@ class IterativeWeights:
         return InputWeight, BiasofHiddenNeurons
 
 
+
+if __name__ == '__main__':
+        # Load benign and malign data
+    from XAI_PreProcessing import DataProcessing
+    from XAI_ELM import XAI
+    benign_path, malign_path = None, None
+    preProcesser = DataProcessing(benign_path, malign_path)
+    if benign_path != None and malign_path != None:
+         dataset, T, P, TVP = preProcesser.create_dataset()
+    else:
+         dataset, T, P, TVP = (
+        preProcesser.get_sample_datasets('linear'))
+        #preProcesser.get_dataset_scikit(500,4,4))
+
+    print('Dataset loaded')
+    # Calculate Weights
+
+    weight_factory = IterativeWeights(
+         conjuntoTreinamento=dataset,
+         max_iterations=1000)
+    weights_elm, bias_elm = weight_factory.get_xai_weights()
+    #weights_elm, bias_elm = weight_factory.get_random_weights(NumberofHiddenNeurons=100)
+
+    print('Weights Calculated')
+    # Run XAI algorithm
+
+    xai = XAI(dataset, T, P, TVP)
+    #xai.run_xai_elm()
