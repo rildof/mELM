@@ -23,6 +23,8 @@ class IterativeWeights:
         self.InputWeight = np.zeros((self.NumberofClasses,
                                 self.NumberofInputNeurons))
         self.InputWeightClass = np.zeros((self.NumberofClasses))
+        self.InputWeightSaturation = np.zeros((self.NumberofClasses,
+                                            self.NumberofInputNeurons))
         self.iteration = 0
         self.count_iteration = 1
         self.max_per_class = self.calculate_max_per_class()
@@ -36,17 +38,17 @@ class IterativeWeights:
             self.iteration += 1
 
             self.xai_weights_aux_func()
-
+            breakpoint()
             if self.iteration == 1:
                 #Remove the zeroes from the InputWeight matrix
-                InputWeight = InputWeight[~np.all(InputWeight == 0, axis=1)]
-                InputWeightClass = InputWeightClass[InputWeightClass != 0]
+                self.InputWeight = self.InputWeight[~np.all(self.InputWeight == 0, axis=1)]
+                self.InputWeightClass = self.InputWeightClass[self.InputWeightClass != 0]
             
             self.run_elm_level()
 
             #Condições de parada
 
-            if self.conjuntoTreinemanto.size == 0:
+            if self.conjuntoTreinamento.size == 0:
                 break
             if len(set(self.conjuntoTreinamento[:, 0])) == 1 and ({1} in [set(f) for f in self.feature_saturation]): # 
                 break
@@ -100,7 +102,7 @@ class IterativeWeights:
                         # Set class for this weight
                         self.InputWeightClass[self.count_iteration] = classe
                         # Set saturation status
-                        self.feature_saturation[classe-1, :] = self.feature_saturation[classe-1, :]
+                        self.InputWeightSaturation[self.count_iteration, :] = self.feature_saturation[classe-1, :]
                         # Increment counter
                         self.count_iteration += 1
                 #FIM insere_amostra_apos_saturacao
@@ -220,64 +222,91 @@ class IterativeWeights:
             
             if  (flag==False):
                 inputMax = False
-                continue
-                #return vectorInput, inputMax, vector_modas_saturation, index, flag
-            # Filtra as linhas onde o valor na coluna index é igual ao inputMax
-            linhasSelecionadas = c[c[:, index+1] == modeMax, :].astype(np.int64)[0]
-            
-            selectedValues = c[linhasSelecionadas, :]
-            modas_temp, _ = calcula_modas(selectedValues, classe)
-            def calcula_maximos_auxiliar_linhas_selecionadas(c, modas):
-                """Calculate auxiliary maximums for XAI weights calculation for selected lines
-                Simplified version of calcula_maximos_auxiliar without saturation handling
-                """
-                vectorInput = np.zeros(self.NumberofInputNeurons)
-                vectorFreq = np.zeros(self.NumberofInputNeurons)
+            else:
+                # Filtra as linhas onde o valor na coluna index é igual ao inputMax
+                linhasSelecionadas = c[c[:, index+1] == modeMax, :].astype(np.int64)[0]
                 
-                # Get first mode for each feature
-                for ii in range(self.NumberofInputNeurons):
-                    if len(modas[ii]) > 0:  # Check if there are modes for this feature
-                        vectorInput[ii] = modas[ii][0][1]  # First mode value
-                        vectorFreq[ii] = modas[ii][0][0]   # First mode frequency
-                
-                # Find maximum frequency and its index
-                modeMax = np.max(vectorFreq)
-                index = np.argmax(vectorFreq)
-                
-                # Special handling when maximum frequency is 1
-                if modeMax == 1:
-                    modeMax = np.max(np.abs(vectorInput))
-                    index = np.where(vectorInput == modeMax)[0]
+                selectedValues = c[linhasSelecionadas, :]
+                modas_temp, _ = calcula_modas(selectedValues, classe)
+                def calcula_maximos_auxiliar_linhas_selecionadas(c, modas):
+                    """Calculate auxiliary maximums for XAI weights calculation for selected lines
+                    Simplified version of calcula_maximos_auxiliar without saturation handling
+                    """
+                    vectorInput = np.zeros(self.NumberofInputNeurons)
+                    vectorFreq = np.zeros(self.NumberofInputNeurons)
                     
-                    if len(index) == 0:
-                        index = np.where(np.abs(vectorInput) == modeMax)[0]
-                        modeMax = -modeMax
+                    # Get first mode for each feature
+                    for ii in range(self.NumberofInputNeurons):
+                        if len(modas[ii]) > 0:  # Check if there are modes for this feature
+                            vectorInput[ii] = modas[ii][0][1]  # First mode value
+                            vectorFreq[ii] = modas[ii][0][0]   # First mode frequency
                     
-                    index = index[0]
-                else:
-                    modeMax = vectorInput[index]
-                
-                return vectorInput, modeMax, index
-            (vectorInput, 
-             inputMax, 
-             index) = calcula_maximos_auxiliar_linhas_selecionadas(
-                 linhasSelecionadas, modas_temp)
+                    # Find maximum frequency and its index
+                    modeMax = np.max(vectorFreq)
+                    index = np.argmax(vectorFreq)
+                    
+                    # Special handling when maximum frequency is 1
+                    if modeMax == 1:
+                        modeMax = np.max(np.abs(vectorInput))
+                        index = np.where(vectorInput == modeMax)[0]
+                        
+                        if len(index) == 0:
+                            index = np.where(np.abs(vectorInput) == modeMax)[0]
+                            modeMax = -modeMax
+                        
+                        index = index[0]
+                    else:
+                        modeMax = vectorInput[index]
+                    
+                    return vectorInput, modeMax, index
+                (vectorInput, 
+                inputMax, 
+                index) = calcula_maximos_auxiliar_linhas_selecionadas(
+                    linhasSelecionadas, modas_temp)
             #FIM calcula_maximos
-            breakpoint()
             ii = self.NumberofInputNeurons
             count_vector = np.zeros(self.NumberofInputNeurons)
-            
             if flag == False:
-                InputWeightTotal, InputWeightClass, 
-
-
+                #INICIO ESTUDA_SATURACAO
+                if np.all(self.feature_saturation[:,:]==1):
+                    print('Saturação total.')
+                elif(np.sum(self.feature_saturation[classe-1,:]) == self.NumberofInputNeurons):
+                    print('Saturação para a classe', classe)
+                    #if size(InputWeightTotal,1)>count_nivel
+                    if self.InputWeight.shape[0] > self.count_iteration:
+                        #Remove all added zeros in InputWeightTotal and InputWeightClass
+                        self.InputWeight = self.InputWeight[:-1]
+                        self.InputWeightClass = self.InputWeightClass[:-1]
+                        self.InputWeightSaturation = self.InputWeightSaturation[:-1]
+                #FIM ESTUDA_SATURACAO
+            
+            #INICIO update_pesos
+            self.InputWeight[-1] = vectorInput
+            self.InputWeightClass[-1] = classe
+            self.InputWeightSaturation[-1, :] = self.feature_saturation[classe-1, :]
+            for ii in range(self.NumberofInputNeurons):
+                jj = np.where(modas[ii][:, 1] == vectorInput[ii])[0]
+                vector_modas_saturation[ii][jj] = 1
+            flag = True
+            #FIM update_pesos
+            
+            linha_com_valor_unico = False
+            if self.count_iteration > 1:
+                for i in range(self.InputWeight.shape[0]):
+                    if np.all(self.InputWeight[i, :] == self.InputWeight[i, 0]):
+                        linha_com_valor_unico = True
+                        linha = i
+                        break
+                if linha_com_valor_unico:
+                    print('erro')
+                    print(self.InputWeight)
+                    print(self.feature_saturation)
+                    print(self.count_iteration)
+                    print(classe)
+                    breakpoint()
             #FIM pesos_xai_classe_por_classe
 
-            #Condicional para checar se o peso foi populado
-            if InputWeightClass[-1] == 0 and self.iteration > 1:
-                #Remove all added zeros in InputWeightTotal and InputWeightClass
-                InputWeightTotal = InputWeightTotal[:-1]
-                InputWeightClass = InputWeightClass[:-1]
+    
 
 
     def run_elm_level(self):
