@@ -6,12 +6,11 @@ from scipy.linalg import pinv
 from scipy.stats import mode
 import time
 import copy
-from sklearn.datasets import make_classification
 import re
 import numpy as np
 import random
 class IterativeWeights:
-    def __init__(self, conjuntoTreinamento, max_iterations=1000):
+    def __init__(self, conjuntoTreinamento, max_iterations=50):
         self.NumberofInputNeurons = conjuntoTreinamento[:,1:].shape[1] #Number of features
         self.NumberofClasses = len(np.unique(conjuntoTreinamento[:,0]))
         self.conjuntoTreinamento = conjuntoTreinamento #Dataset
@@ -28,17 +27,18 @@ class IterativeWeights:
         self.iteration = 0
         self.count_iteration = 1
         self.max_per_class = self.calculate_max_per_class()
-        
+
+
     def get_xai_weights(self):
         """Function that calculates the weights for the XAI algorithm"""
         # Loop through the levels of the XAI algorithm
         # Each level results in num_classes weights added to weights list
         
-        while True or self.iteration < self.max_iterations:
+        while self.iteration < self.max_iterations:
             self.iteration += 1
 
             self.xai_weights_aux_func()
-            breakpoint()
+
             if self.iteration == 1:
                 #Remove the zeroes from the InputWeight matrix
                 self.InputWeight = self.InputWeight[~np.all(self.InputWeight == 0, axis=1)]
@@ -46,6 +46,7 @@ class IterativeWeights:
             
             self.run_elm_level()
 
+            breakpoint()
             #Condições de parada
 
             if self.conjuntoTreinamento.size == 0:
@@ -56,7 +57,8 @@ class IterativeWeights:
             if np.all(self.feature_saturation == 1):
                 print('All features are saturated')
                 break
-        return self.weights
+        return self.InputWeight
+
 
     def xai_weights_aux_func(self):
         """Function that calculates the weights for the XAI algorithm
@@ -69,9 +71,12 @@ class IterativeWeights:
 
         separated_classes = [self.conjuntoTreinamento[self.conjuntoTreinamento[:, 0] == i] for
                               i in range(1, self.NumberofClasses + 1)]
+        #remove zero length classes
+        separated_classes = [x for x in separated_classes if x.size != 0]
+        breakpoint()
         #Min for each class and feature
         min_classes = np.zeros((self.NumberofClasses, self.NumberofInputNeurons))
-        for i in range(self.NumberofClasses):
+        for i in range(len(separated_classes)):
             for j in range(self.NumberofInputNeurons):
                 # Calculate the min for each class and feature
                 min_classes[i, j] = np.min(separated_classes[i][:, j + 1])
@@ -306,15 +311,136 @@ class IterativeWeights:
                     breakpoint()
             #FIM pesos_xai_classe_por_classe
 
-    
 
-
-    def run_elm_level(self):
+    def run_elm_level(self, ActivationFunction='dilation'):
         """Function that runs the ELM algorithm for 
         the current iteration for evaluation in the next
         iteration"""
+        #INICIO dados_entrada_xai
+        REGRESSION = 0
+        CLASSIFIER = 1
+        Elm_Type = CLASSIFIER
+        saidasTreinamento = self.conjuntoTreinamento[:, 0]
+        entradasTreinamento = self.conjuntoTreinamento[:, 1:]
 
-        pass
+        saidasTeste = self.conjuntoTreinamento[:, 0]
+        entradasTeste = self.conjuntoTreinamento[:, 1:]
+
+        if ActivationFunction in ['bitwise_dilation', 'bitwise_erosion']:
+            P = entradasTreinamento.astype(np.int32)
+            TVP = entradasTeste.astype(np.int32)
+        else:
+            P = entradasTreinamento.T
+            TVP = entradasTeste.T
+        
+        T = saidasTreinamento
+        TVT = saidasTeste
+        NumberofTrainingData = P.shape[1]
+        NumberofTestingData = TVP.shape[1]
+
+        if Elm_Type != REGRESSION:
+            # Preprocessing the data for classification
+            sorted_target = np.sort(np.concatenate((T, TVT), axis=0))
+            label = np.unique(sorted_target)
+            number_class = len(label)
+            NumberofOutputNeurons = number_class
+
+            # Processing the targets of training
+            temp_T = np.zeros((NumberofOutputNeurons, NumberofTrainingData))
+            for i in range(NumberofTrainingData):
+                j = np.where(label == T[i])[0][0]
+                temp_T[j, i] = 1
+            T = temp_T * 2 - 1
+
+            # Processing the targets of testing
+            temp_TV_T = np.zeros((NumberofOutputNeurons, NumberofTestingData))
+            for i in range(NumberofTestingData):
+                j = np.where(label == TVT[i])[0][0]
+                temp_TV_T[j, i] = 1
+            TVT = temp_TV_T * 2 - 1
+        #FIM dados_entrada_xai
+        #INICIO elm_autoral_xai
+
+        def elm_autoral_xai(Elm_Type, ActivationFunction,
+                            T, P, TVT, TVP, NumberofTrainingData, 
+                            NumberofTestingData):
+            InputWeight = self.InputWeight
+            NumberofHiddenNeurons = self.NumberofInputNeurons
+            etapa = self.iteration
+            def avaliacaoRedeELM_XAI(numTeste, saidasRede, saidasDesejada, entrada, treino):
+                # Calculating classification error for the test set
+                # (The classification rule is winner-takes-all, i.e., the output node that generates the highest output value
+                # corresponds to the class of the pattern).
+                
+                maiorSaidaRede = np.max(saidasRede, axis=0)
+                nodoVencedorRede = np.argmax(saidasRede, axis=0)
+                
+                maiorSaidaDesejada = np.max(saidasDesejada, axis=0)
+                nodoVencedorDesejado = np.argmax(saidasDesejada, axis=0)
+
+                classificacoesErradas = 0
+                for padrao in range(numTeste - 1, -1, -1):
+                    if nodoVencedorRede[padrao] != nodoVencedorDesejado[padrao]:
+                        classificacoesErradas += 1
+                
+                accuracy = 1 - (classificacoesErradas / numTeste)
+                print("Accuracy:", accuracy)
+                print("Treino:", treino)
+
+                if treino == 'treino':
+                    if etapa >= 1:
+                        mask = nodoVencedorRede == nodoVencedorDesejado
+                        saidasDesejada = saidasDesejada[:, ~mask]
+                        entrada = entrada[:, ~mask]
+
+                return accuracy, saidasDesejada, entrada
+
+            # Calculate weights & biases
+            start_time_train = time.time()
+
+            # Generate input weights and biases of hidden neurons
+            BiasMatrix =  np.zeros((NumberofHiddenNeurons, 1))
+            H = switchActivationFunction(ActivationFunction, InputWeight, BiasMatrix,  P)
+            # Calculate output weights (beta_i)
+            OutputWeight = np.linalg.pinv(H.T) @ T.T
+            Y = (H.T @ OutputWeight).T
+            
+            end_time_train = time.time()
+            TrainingTime = end_time_train - start_time_train
+            
+            # Calculate the output of testing input
+            start_time_test = time.time()
+            H_test = switchActivationFunction(ActivationFunction, InputWeight, BiasMatrix,  TVP)
+            TY = (H_test.T @ OutputWeight).T
+            
+            end_time_test = time.time()
+            TestingTime = end_time_test - start_time_test
+            
+            if Elm_Type == CLASSIFIER:
+                # Calculate the accuracy of the network on the training set
+                train_accuracy, T, P = avaliacaoRedeELM_XAI(NumberofTrainingData, Y, T, P, 'treino')
+                if etapa != 1:
+                    # Calculate the accuracy of the network on the test set
+                    test_accuracy, TVT, TVP = avaliacaoRedeELM_XAI(NumberofTestingData, TY, TVT, TVP, etapa, 'teste')
+                    #TODO: Implement confusao_funcao_elm
+                    #confusao_funcao_elm(T, Y, TVT, TY, iteracao, ActivationFunction, 
+                    #                    e_index, c_index, g_index, classificador, fold)
+                else:
+                    test_accuracy = 0.0
+            else:
+                train_accuracy = None
+                test_accuracy = None
+
+            return T, P, train_accuracy, test_accuracy, TrainingTime, TestingTime
+        (T,P,train_accuracy,
+        test_accuracy,TrainingTime,
+        TestingTime) = elm_autoral_xai(Elm_Type,
+        ActivationFunction, T, P, TVT, TVP, 
+        NumberofTrainingData, NumberofTestingData,)
+        breakpoint()
+        #TODO corrigir cada coluna T -> cada classe, -1 não é 1 é da classe
+        self.conjuntoTreinamento = np.column_stack((T, P))
+        #FIM elm_autoral_xai
 
 
     def get_random_weights(self, NumberofHiddenNeurons):
@@ -358,22 +484,19 @@ class IterativeWeights:
 if __name__ == '__main__':
         # Load benign and malign data
     from XAI_PreProcessing import DataProcessing
-    from XAI_ELM import XAI
-    benign_path, malign_path = None, None
-    preProcesser = DataProcessing(benign_path, malign_path)
-    if benign_path != None and malign_path != None:
-         dataset, T, P, TVP = preProcesser.create_dataset()
-    else:
-         dataset, T, P, TVP = (
-        preProcesser.get_sample_datasets('linear'))
-        #preProcesser.get_dataset_scikit(500,4,4))
+    from XAI_ELM import XAI 
+    preProcesser = DataProcessing(None, None)
+    dataset, T, P, TVP = preProcesser.get_dataset_scikit(100,10,3,42)
+        #dataset, T, P, TVP = (
+    #preProcesser.get_sample_datasets('linear'))
+    #preProcesser.get_dataset_scikit(500,4,4))
 
     print('Dataset loaded')
     # Calculate Weights
 
     weight_factory = IterativeWeights(
          conjuntoTreinamento=dataset,
-         max_iterations=1000)
+         max_iterations=20)
     weights_elm, bias_elm = weight_factory.get_xai_weights()
     #weights_elm, bias_elm = weight_factory.get_random_weights(NumberofHiddenNeurons=100)
 

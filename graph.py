@@ -49,6 +49,8 @@ def kernel_matrix_rildo(ActivationFunction, InputWeight, BiasMatrix, P):
                 H[i, j] = result
     
     return H
+
+
 def plotar(author, pasta, ActivationFunction, NumberofHiddenNeurons, 
            entrada_benigno, entrada_maligno, xx1, yy1, xx2, yy2, acc, 
            InputWeight=None, InputWeightClass=None):
@@ -815,7 +817,7 @@ def elm_autoral_xai(classificador, Elm_Type, ActivationFunction,
     # Generate input weights and biases of hidden neurons
     BiasMatrix =  np.zeros((NumberofHiddenNeurons, 1))
     H = switchActivationFunction(ActivationFunction, InputWeight, BiasMatrix,  P)
-    
+    breakpoint()
     # Calculate output weights (beta_i)
     OutputWeight = np.linalg.pinv(H.T) @ T.T
     Y = (H.T @ OutputWeight).T

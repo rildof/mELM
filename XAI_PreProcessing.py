@@ -861,6 +861,7 @@ class DataProcessing:
         -0.5919
 
         """
+            
             elif kernel == 'radbas':
                 string = """x1 =
 
