@@ -16,7 +16,7 @@ class IterativeWeights:
         self.conjuntoTreinamento = conjuntoTreinamento #Dataset
         #Variables for the Iterative XAI algorithm
         self.max_iterations = max_iterations #Max iterations for the XAI algorithm
-        self.conjuntoTreinemantoELM = copy.deepcopy(self.conjuntoTreinamento)
+        self.conjuntoTreinamentoELM = copy.deepcopy(self.conjuntoTreinamento)
         self.feature_saturation = np.zeros((self.NumberofClasses,
                                        self.NumberofInputNeurons))
         self.InputWeight = np.zeros((self.NumberofClasses,
@@ -43,10 +43,8 @@ class IterativeWeights:
                 #Remove the zeroes from the InputWeight matrix
                 self.InputWeight = self.InputWeight[~np.all(self.InputWeight == 0, axis=1)]
                 self.InputWeightClass = self.InputWeightClass[self.InputWeightClass != 0]
-            
             self.run_elm_level()
 
-            breakpoint()
             #Condições de parada
 
             if self.conjuntoTreinamento.size == 0:
@@ -229,9 +227,8 @@ class IterativeWeights:
                 inputMax = False
             else:
                 # Filtra as linhas onde o valor na coluna index é igual ao inputMax
-                linhasSelecionadas = c[c[:, index+1] == modeMax, :].astype(np.int64)[0]
-                
-                selectedValues = c[linhasSelecionadas, :]
+                linhasSelecionadas = np.where(c[:, index+1] == modeMax)#.astype(np.int64)[0]
+                selectedValues = c[linhasSelecionadas, :][0]
                 modas_temp, _ = calcula_modas(selectedValues, classe)
                 def calcula_maximos_auxiliar_linhas_selecionadas(c, modas):
                     """Calculate auxiliary maximums for XAI weights calculation for selected lines
@@ -320,11 +317,11 @@ class IterativeWeights:
         REGRESSION = 0
         CLASSIFIER = 1
         Elm_Type = CLASSIFIER
-        saidasTreinamento = self.conjuntoTreinamento[:, 0]
-        entradasTreinamento = self.conjuntoTreinamento[:, 1:]
+        saidasTreinamento = self.conjuntoTreinamentoELM[:, 0]
+        entradasTreinamento = self.conjuntoTreinamentoELM[:, 1:]
 
-        saidasTeste = self.conjuntoTreinamento[:, 0]
-        entradasTeste = self.conjuntoTreinamento[:, 1:]
+        saidasTeste = self.conjuntoTreinamentoELM[:, 0]
+        entradasTeste = self.conjuntoTreinamentoELM[:, 1:]
 
         if ActivationFunction in ['bitwise_dilation', 'bitwise_erosion']:
             P = entradasTreinamento.astype(np.int32)
@@ -421,7 +418,7 @@ class IterativeWeights:
                 train_accuracy, T, P = avaliacaoRedeELM_XAI(NumberofTrainingData, Y, T, P, 'treino')
                 if etapa != 1:
                     # Calculate the accuracy of the network on the test set
-                    test_accuracy, TVT, TVP = avaliacaoRedeELM_XAI(NumberofTestingData, TY, TVT, TVP, etapa, 'teste')
+                    test_accuracy, TVT, TVP = avaliacaoRedeELM_XAI(NumberofTestingData, TY, TVT, TVP, 'teste')
                     #TODO: Implement confusao_funcao_elm
                     #confusao_funcao_elm(T, Y, TVT, TY, iteracao, ActivationFunction, 
                     #                    e_index, c_index, g_index, classificador, fold)
@@ -437,9 +434,16 @@ class IterativeWeights:
         TestingTime) = elm_autoral_xai(Elm_Type,
         ActivationFunction, T, P, TVT, TVP, 
         NumberofTrainingData, NumberofTestingData,)
-        breakpoint()
         #TODO corrigir cada coluna T -> cada classe, -1 não é 1 é da classe
-        self.conjuntoTreinamento = np.column_stack((T, P))
+        #self.conjuntoTreinamento = np.column_stack((T, P))
+        self.conjuntoTreinamento = P
+        self.conjuntoTreinamento = np.vstack((self.conjuntoTreinamento, np.zeros((1, self.conjuntoTreinamento.shape[1]))))
+        for index, column in enumerate(T):
+            indexes = np.where(column == 1)
+            self.conjuntoTreinamento[-1, indexes] = index + 1
+        
+        self.conjuntoTreinamento = np.roll(self.conjuntoTreinamento, 1, axis=0) 
+        self.conjuntoTreinamento = self.conjuntoTreinamento.T
         #FIM elm_autoral_xai
 
 
