@@ -4,13 +4,14 @@ from itertools import product
 from melm_lib import *
 from scipy.linalg import pinv
 from scipy.stats import mode
+from XAI_Plotter import Plotter
 import time
 import copy
 import re
 import numpy as np
 import random
 class IterativeWeights:
-    def __init__(self, conjuntoTreinamento, max_iterations=50):
+    def __init__(self, conjuntoTreinamento, max_iterations=10):
         self.NumberofInputNeurons = conjuntoTreinamento[:,1:].shape[1] #Number of features
         self.NumberofClasses = len(np.unique(conjuntoTreinamento[:,0]))
         self.conjuntoTreinamento = conjuntoTreinamento #Dataset
@@ -55,7 +56,8 @@ class IterativeWeights:
             if np.all(self.feature_saturation == 1):
                 print('All features are saturated')
                 break
-        return self.InputWeight
+        
+        return self.InputWeight, np.zeros((self.InputWeight.shape[0], 1))
 
 
     def xai_weights_aux_func(self):
@@ -71,7 +73,7 @@ class IterativeWeights:
                               i in range(1, self.NumberofClasses + 1)]
         #remove zero length classes
         separated_classes = [x for x in separated_classes if x.size != 0]
-        breakpoint()
+
         #Min for each class and feature
         min_classes = np.zeros((self.NumberofClasses, self.NumberofInputNeurons))
         for i in range(len(separated_classes)):
@@ -362,7 +364,7 @@ class IterativeWeights:
                             T, P, TVT, TVP, NumberofTrainingData, 
                             NumberofTestingData):
             InputWeight = self.InputWeight
-            NumberofHiddenNeurons = self.NumberofInputNeurons
+            NumberofHiddenNeurons = self.InputWeight.shape[0]
             etapa = self.iteration
             def avaliacaoRedeELM_XAI(numTeste, saidasRede, saidasDesejada, entrada, treino):
                 # Calculating classification error for the test set
@@ -397,6 +399,7 @@ class IterativeWeights:
 
             # Generate input weights and biases of hidden neurons
             BiasMatrix =  np.zeros((NumberofHiddenNeurons, 1))
+            breakpoint()
             H = switchActivationFunction(ActivationFunction, InputWeight, BiasMatrix,  P)
             # Calculate output weights (beta_i)
             OutputWeight = np.linalg.pinv(H.T) @ T.T
@@ -490,9 +493,9 @@ if __name__ == '__main__':
     from XAI_PreProcessing import DataProcessing
     from XAI_ELM import XAI 
     preProcesser = DataProcessing(None, None)
-    dataset, T, P, TVP = preProcesser.get_dataset_scikit(100,10,3,42)
-        #dataset, T, P, TVP = (
-    #preProcesser.get_sample_datasets('linear'))
+    #dataset, T, P, TVP = preProcesser.get_dataset_scikit(100,10,3,42)
+    dataset, T, P, TVP = (
+    preProcesser.get_sample_datasets('linear'))
     #preProcesser.get_dataset_scikit(500,4,4))
 
     print('Dataset loaded')
@@ -500,12 +503,14 @@ if __name__ == '__main__':
 
     weight_factory = IterativeWeights(
          conjuntoTreinamento=dataset,
-         max_iterations=20)
+         max_iterations=10)
     weights_elm, bias_elm = weight_factory.get_xai_weights()
     #weights_elm, bias_elm = weight_factory.get_random_weights(NumberofHiddenNeurons=100)
 
     print('Weights Calculated')
     # Run XAI algorithm
 
-    xai = XAI(dataset, T, P, TVP)
-    #xai.run_xai_elm()
+    # xai = XAI(dataset, T, P, TVP)
+    # xai_data = xai.run_traditional_elm(weights_elm, bias_elm)
+    # plotter = Plotter()
+    # plotter.plotar(dataset, xai_data, None, None, 'ELM', 'XAI')
