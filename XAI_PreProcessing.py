@@ -599,6 +599,247 @@ class DataProcessing:
             elif kernel == 'linear':
                 string = """x1 =
 
+   -4.7436
+   -4.4872
+   -3.9744
+   -1.6667
+   -1.4103
+   -1.1538
+   -0.8974
+   -0.3846
+   -0.1282
+    0.1282
+    0.3846
+    1.1538
+    1.6667
+    1.9231
+    2.1795
+    2.4359
+    2.6923
+    3.2051
+    4.2308
+    5.0000
+
+
+y1 =
+
+   -0.4359
+   -0.3218
+   -0.2436
+    0.3333
+    0.3974
+    0.4615
+    0.5756
+    0.7038
+    0.7679
+    0.8321
+    0.8962
+    1.0385
+    1.2167
+    1.2308
+    1.3449
+    1.3590
+    1.4731
+    1.5513
+    1.8577
+    2.0500
+
+
+x2 =
+
+   -3.9744
+   -3.2051
+   -2.9487
+   -2.6923
+   -2.1795
+   -1.6667
+   -1.4103
+   -1.1538
+   -0.6410
+   -0.1282
+    0.8974
+    1.1538
+    1.4103
+    1.6667
+    2.4359
+    2.6923
+    2.9487
+    3.4615
+    4.7436
+    5.0000
+
+
+y2 =
+
+   -0.6936
+   -0.5013
+   -0.3872
+   -0.3731
+   -0.1949
+   -0.0667
+   -0.0526
+    0.0115
+    0.1397
+    0.3179
+    0.5744
+    0.6385
+    0.7026
+    0.7667
+    0.9590
+    1.0231
+    1.0372
+    1.2154
+    1.5359
+    1.5500
+
+
+x11 =
+
+   -4.7436
+   -4.7436
+   -4.4872
+   -4.4872
+   -3.9744
+   -3.9744
+   -1.6667
+   -1.6667
+   -1.4103
+   -1.4103
+   -1.1538
+   -1.1538
+   -0.8974
+   -0.3846
+   -0.3846
+   -0.1282
+   -0.1282
+    0.1282
+    0.3846
+    0.3846
+    1.1538
+    1.6667
+    1.9231
+    2.1795
+    2.4359
+    2.6923
+    3.2051
+    3.2051
+    3.2051
+    3.2051
+    3.2051
+    3.2051
+
+
+y11 =
+
+    0.5603
+    1.4339
+    0.6739
+    1.6554
+    0.6971
+    1.9306
+    0.4330
+    1.5194
+    0.5279
+    1.8375
+    0.6585
+    1.7259
+    0.8579
+    0.9419
+    1.7056
+    0.8735
+    1.7980
+    1.0656
+    1.3354
+    2.0132
+    1.5464
+    1.7395
+    1.6831
+    1.7359
+    1.5020
+    1.8284
+    2.0117
+    2.0117
+    2.0117
+    2.0117
+    2.0117
+    2.0117
+
+
+x22 =
+
+   -1.1538
+   -0.6410
+   -0.6410
+   -0.1282
+   -0.1282
+    0.8974
+    0.8974
+    1.1538
+    1.1538
+    1.4103
+    1.4103
+    1.6667
+    1.6667
+    2.4359
+    2.4359
+    2.4359
+    2.6923
+    2.6923
+    2.6923
+    2.9487
+    2.9487
+    2.9487
+    3.4615
+    3.4615
+    3.4615
+    4.7436
+    4.7436
+    4.7436
+    5.0000
+    5.0000
+    5.0000
+    5.0000
+
+
+y22 =
+
+    0.0088
+    0.0965
+   -0.3637
+    0.2272
+   -0.3655
+    0.4451
+   -0.1211
+    0.4025
+   -0.0648
+    0.5957
+   -0.0404
+    0.5308
+    0.0108
+    0.8582
+    0.1332
+   -0.3356
+    0.7369
+    0.1470
+   -0.3036
+    0.9313
+    0.2043
+   -0.2551
+    0.6901
+    0.2994
+   -0.1768
+    1.0269
+    0.6228
+    0.0271
+    0.9785
+    0.6088
+    0.0303
+   -0.5701
+   """
+            
+            elif kernel == 'linearxxx':
+                string = """x1 =
+
         -5.0000
         -4.4872
         -3.4615
@@ -2732,6 +2973,7 @@ class DataProcessing:
         -0.9193
         -0.7725
         """
+            
             #divide based on x1 =, x2 =, x11 =, x22 =, y1 =, y2 =, y11 =, y22 =
             string = re.split(r'x1 =|x2 =|x11 =|x22 =|y1 =|y2 =|y11 =|y22 =', string)[1:]
             y = []
@@ -2938,8 +3180,168 @@ class DataProcessing:
 
         return self.create_dataset(*args)
     
+    def shift_dataset(self, conjuntoTreinamento):
+        new_min = 0.1
+
+        #for each column
+        for i in range(1,conjuntoTreinamento.shape[1]):
+            #shift the column
+            min_val = np.min(conjuntoTreinamento[:,i])
+            max_val = np.max(conjuntoTreinamento[:,i])
+            shift = new_min - min_val
+            conjuntoTreinamento[:,i] = conjuntoTreinamento[:,i] + shift
+
+        labels = np.unique(conjuntoTreinamento[:,0])
+
+        NumberofOutputNeurons = len(labels)
+        NumberofTrainingData = conjuntoTreinamento.shape[0]
+        
+        P = conjuntoTreinamento[:,1:].T
+        # Initialize T with ones
+        T = conjuntoTreinamento[:, 0]
+        temp_T=np.zeros((NumberofOutputNeurons, NumberofTrainingData))
+            
+        for i in range(0, NumberofTrainingData): # Para cada amostra
+            for j in range(0, NumberofOutputNeurons): # Para cada classe
+                if labels[j] == T[i]: #Se a label estiver dentro das labels da base de dados
+                    break
+            temp_T[j][i]=1
+        T=temp_T*2-1
+        if conjuntoTreinamento.shape[1] == 3:
+            minP1 = np.min(P[0, :])
+            maxP1 = np.max(P[0, :])
+            minP2 = np.min(P[1, :])
+            maxP2 = np.max(P[1, :])
+            # Create vectors using linspace
+            vetora = np.linspace(minP1, maxP1, int(160))
+            vetorb = np.linspace(minP2, maxP2, int(80))
+            # Create the combinatorial matrix similar to combvec in MATLAB
+            TVP = np.array(list(product(vetora, vetorb))).T
+            # T se transforma em uma matriz 2xN, onde N é o número de amostras
+            # linha 0: se for 1, é da classe 1, se for -1, é classe 0
+            # linha 1: se for 1, é da classe 0, se for -1, é classe 1
+        else:
+            TVP = P
+        return conjuntoTreinamento, T, P, TVP
 
 
 if __name__ == '__main__':
     dataProcess = DataProcessing()
-    conjuntoTreinamento, T, P, TVP = dataProcess.get_dataset_scikit(100,10,3,42)
+    #conjuntoTreinamento, T, P, TVP = dataProcess.get_dataset_scikit(100,10,3,42)
+    conjuntoTreinamento, T, P, TVP = dataProcess.get_distribution_dataset('linear', 100)
+#     #Prime,iras 50 li],nhas
+#     entrada_benigno=[[-4.4872,   -0.3718],
+#    [-4.4872,    0.6438],
+#    [-4.4872,    1.3715],
+#    [-3.9744,   -0.2436],
+#    [-3.9744,    0.7192],
+#    [-3.9744,    1.6483],
+#    [-3.7179,   -0.1795],
+#    [-3.7179,    0.8106],
+#    [-3.7179,    1.6557],
+#    [-3.2051,   -0.0513],
+#    [-3.2051,    1.1025],
+#    [-3.2051,    2.0269],
+#    [-2.9487,    0.0128],
+#    [-2.9487,    0.0185],
+#    [-2.9487,    1.0394],
+#    [-2.1795,    0.2051],
+#    [-2.1795,    0.2583],
+#    [-2.1795,    1.3184],
+#    [-1.4103,    0.4474],
+#    [-1.4103,    0.6649],
+#    [-1.4103,    1.5278],
+#    [-1.1538,    0.5115],
+#    [-1.1538,    0.5839],
+#    [-1.1538,    1.5268],
+#    [-0.8974,    0.5756],
+#    [-0.8974,    0.6364],
+#    [-0.8974,    1.9172],
+#    [-0.6410,    0.5897],
+#    [-0.6410,    0.7819],
+#    [-0.6410,    1.9807],
+#    [-0.1282,    0.7179],
+#    [-0.1282,    0.9354],
+#    [ 0.3846,    0.8962],
+#    [ 0.3846,    1.2352],
+#    [ 1.1538,    1.0385],
+#    [ 1.1538,    1.3112],
+#    [ 2.1795,    1.2949],
+#    [ 2.1795,    1.5175],
+#    [ 2.4359,    1.4090],
+#    [ 2.4359,    1.7312],
+#    [ 2.6923,    1.4731],
+#    [ 2.6923,    1.7221],
+#    [ 3.7179,    1.6795],
+#    [ 4.4872,    1.9218],
+#    [ 4.7436,    1.9359],
+#    [ 5.0000,    2.0500]]
+
+#     entrada_maligno = [[-5.0000,   -0.9000],
+#     [-4.2308,   -0.7077],
+#     [-3.9744,   -0.6936],
+#     [-2.6923,   -0.3231],
+#     [-2.4359,   -0.3090],
+#     [-2.1795,   -0.2449],
+#     [-1.6667,   -0.4775],
+#     [-1.6667,   -0.0667],
+#     [-1.4103,   -0.6095],
+#     [-1.4103,   -0.0526],
+#     [-0.8974,   -0.4204],
+#     [-0.8974,    0.0581],
+#     [-0.8974,    0.0756],
+#     [-0.1282,   -0.2795],
+#     [-0.1282,    0.2124],
+#     [-0.1282,    0.2679],
+#     [ 0.3846,   -0.2432],
+#     [ 0.3846,    0.3097],
+#     [ 0.3846,    0.3962],
+#     [ 0.8974,   -0.1273],
+#     [ 0.8974,    0.3696],
+#     [ 0.8974,    0.5244],
+#     [ 1.1538,   -0.1356],
+#     [ 1.1538,    0.3205],
+#     [ 1.1538,    0.5885],
+#     [ 1.6667,   -0.5689],
+#     [ 1.6667,   -0.0194],
+#     [ 1.6667,    0.4772],
+#     [ 1.6667,    0.7167],
+#     [ 2.1795,   -0.4334],
+#     [ 2.1795,    0.0728],
+#     [ 2.1795,    0.4488],
+#     [ 2.1795,    0.8449],
+#     [ 2.6923,   -0.4312],
+#     [ 2.6923,    0.2188],
+#     [ 2.6923,    0.6415],
+#     [ 2.6923,    1.0231],
+#     [ 2.9487,   -0.3569],
+#     [ 2.9487,    0.1493],
+#     [ 2.9487,    0.7606],
+#     [ 2.9487,    1.0372],
+#     [ 3.4615,   -0.2211],
+#     [ 3.4615,    0.3842],
+#     [ 3.4615,    0.7148],
+#     [ 3.4615,    1.2154],
+#     [ 3.9744,   -0.1002],
+#     [ 3.9744,    0.3625],
+#     [ 3.9744,    1.1315],
+#     [ 3.9744,    1.3436],
+#     [ 4.2308,   -0.7282],
+#     [ 4.2308,   -0.0919],
+#     [ 4.2308,    0.4833],
+#     [ 4.2308,    0.8480],
+#     [ 4.2308,    1.3577]]
+    
+#     #add column of ones to entrada_benigno
+#     entrada_benigno = np.array(entrada_benigno)
+#     entrada_benigno = np.hstack((np.ones((entrada_benigno.shape[0],1)), entrada_benigno))
+#     #add column of twos to entrada_maligno
+#     entrada_maligno = np.array(entrada_maligno)
+#     entrada_maligno = np.hstack((2*np.ones((entrada_maligno.shape[0],1)), entrada_maligno))
+#     #concatenate both
+#     conjuntoTreinamento = np.vstack((entrada_benigno, entrada_maligno))
+    print(conjuntoTreinamento[:50])
+    conjuntoTreinamento, T, P, TVP = dataProcess.shift_dataset(conjuntoTreinamento)
+    print("SHIFTED")
+    print(np.min(conjuntoTreinamento, axis=0))
+    print(np.max(conjuntoTreinamento, axis=0))

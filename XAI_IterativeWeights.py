@@ -45,7 +45,12 @@ class IterativeWeights:
                 self.InputWeight = self.InputWeight[~np.all(self.InputWeight == 0, axis=1)]
                 self.InputWeightClass = self.InputWeightClass[self.InputWeightClass != 0]
             self.run_elm_level()
-
+            print('Iteration:', self.iteration)
+            print('InputWeight:', self.InputWeight)
+            print('InputWeightClass:', self.InputWeightClass)
+            print('InputWeightSaturation:', self.InputWeightSaturation)
+            print('Feature Saturation:', self.feature_saturation)
+            
             #Condições de parada
 
             if self.conjuntoTreinamento.size == 0:
@@ -117,28 +122,7 @@ class IterativeWeights:
             self.InputWeight = np.vstack((self.InputWeight, 
                                           np.zeros((1, self.NumberofInputNeurons))))
             self.InputWeightClass = np.append(self.InputWeightClass, 0)
-            
-            #Calculate the mode for each class and feature (pesos_xai_classe_por_classe)
 
-            # Calculate the mode for each class and feature
-            
-            # Verifica se a saturação para a classe já ocorreu
-            if (np.sum(self.feature_saturation[classe-1, :]) == 
-                self.feature_saturation.shape[1]):
-                #insere_amostra_apos_saturacao
-                # Process each sample in current class data
-                for sample in c:
-                    new_sample = sample[1:]  # Exclude class label
-                    # Check if sample exists using array comparison
-                    sample_exists = np.any(np.all(self.InputWeight == new_sample, axis=1))
-                    
-                    if not sample_exists:
-                        # Add new sample to weights
-                        self.InputWeight[-1] = new_sample
-                        self.InputWeightClass[-1] = sample[0]
-                        self.feature_saturation[classe-1, :] = 1  # Set saturation for class
-                        self.count_iteration += 1
-                continue
             
             def calcula_modas(c, classe):
                 # Initialize arrays
@@ -154,11 +138,13 @@ class IterativeWeights:
                     
                     # Sort based on class and frequency
                     if self.max_per_class[ii] == classe:
+                        #Sort by frequency then sort, inside the same frequencies, by value in descending order
+                        modas_ordenadas = modas_frequencias[np.lexsort((-modas_frequencias[:,1], -modas_frequencias[:,0]))]
                         # Ordena os valores em ordem decrescente
-                        modas_ordenadas = modas_frequencias[modas_frequencias[:,1].argsort()[::-1]]
+                        #modas_ordenadas = modas_frequencias[modas_frequencias[:,1].argsort()[::-1]]
                     else:
-                        # Ordena pela frequência em ordem decrescente
-                        modas_ordenadas = modas_frequencias[modas_frequencias[:,0].argsort()[::-1]]
+                        # Sort by frequency then sort, inside the same frequencies, by value in ascending order
+                        modas_ordenadas = modas_frequencias[np.lexsort((modas_frequencias[:,1], modas_frequencias[:,0]))]
                     
                     # Store sorted modes and frequencies
                     n_rows = modas_ordenadas.shape[0]
@@ -181,6 +167,8 @@ class IterativeWeights:
             (modas, 
              vector_modas_saturation) = calcula_modas(
                  c, classe)
+            #TODO mudar calcula_modas resultado para ser apenas os valores
+            breakpoint()
             # INICIO CALCULA_MAXIMOS
             def calcula_maximos_auxiliar(c, modas, vector_modas_saturation):
                 """Calculate auxiliary maximums for XAI weights calculation"""
@@ -493,12 +481,16 @@ if __name__ == '__main__':
     from XAI_PreProcessing import DataProcessing
     from XAI_ELM import XAI 
     preProcesser = DataProcessing(None, None)
+    #dataset, T, P, TVP = preProcesser.get_distribution_dataset('linear', 100)
     #dataset, T, P, TVP = preProcesser.get_dataset_scikit(100,10,3,42)
     dataset, T, P, TVP = (
     preProcesser.get_sample_datasets('linear'))
+    dataset, T, P, TVP = (
+        preProcesser.shift_dataset(dataset))
     #preProcesser.get_dataset_scikit(500,4,4))
 
     print('Dataset loaded')
+    breakpoint()
     # Calculate Weights
 
     weight_factory = IterativeWeights(

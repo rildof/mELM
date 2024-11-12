@@ -4467,6 +4467,7 @@ def grafico_xai_inter(kernel, NumberofHiddenNeurons,num_amostras):
     InputWeight_xai_Rildo, InputWeightClass = pesos_xai_rildo(
         iteracao, NumberofInputNeurons, conjuntoTreinamento
     )
+    breakpoint()
     #---------------------------------------------------------------------------- RILDO
 
 
